@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Invoice Form - Malka Media Group</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- Custom Styles -->
+    <link rel="stylesheet" href="invoice_styles.css">
+</head>
+<body>
+    <div id="invoice-form" class="invoice-container">
+        
+        <!-- Header Section -->
+        <header class="invoice-header">
+            <div class="header-content">
+                <div class="invoice-title">
+                    <h1>INVOICE</h1>
+                    <p>Professional Services Invoice</p>
+                </div>
+                
+                <div class="vendor-info">
+                    <h3 class="required-field">Vendor Information</h3>
+                    <div class="vendor-fields">
+                        <input id="vendor-name" type="text" placeholder="Vendor Company Name" 
+                               class="form-input" required>
+                        <input id="vendor-address" type="text" placeholder="Vendor Address" 
+                               class="form-input">
+                        <input id="vendor-city" type="text" placeholder="City, State, ZIP" 
+                               class="form-input">
+                        <input id="vendor-email" type="email" placeholder="vendor.email@example.com" 
+                               class="form-input" required>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Bill To & Invoice Details Section -->
+        <section class="form-section">
+            <div class="grid-2">
+                <!-- Bill To -->
+                <div class="bill-to-section">
+                    <h2 class="section-title required-field">Bill To</h2>
+                    <div class="bill-to-fields">
+                        <input id="client-name" type="text" placeholder="Client Company Name" 
+                               value="Malka Media Group" class="form-input" required>
+                        <input id="hiring-manager" type="text" placeholder="Hiring Manager" 
+                               class="form-input" required>
+                        <input id="hiring-manager-email" type="email" placeholder="hiringmanager@malkamedia.com" 
+                               class="form-input" required>
+                    </div>
+                    
+                    <!-- Cost Center -->
+                    <div class="cost-center-field">
+                        <label for="cost-center" class="detail-label required-field">Cost Center:</label>
+                        <select id="cost-center" class="form-select" required>
+                            <option value="" disabled selected>Select Cost Center...</option>
+                            <option value="40677">40677 - ML Malka Post Production</option>
+                            <option value="40382">40382 - ML Malka Production</option>
+                            <option value="40405">40405 - ML Malka Media Operations</option>
+                            <option value="40383">40383 - ML Malka Project Management</option>
+                            <option value="40425">40425 - ML Malka Animation</option>
+                            <option value="40473">40473 - ML Malka Creative Services</option>
+                            <option value="40386">40386 - ML Malka Account Management</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- Invoice Details -->
+                <div class="invoice-details">
+                    <h2 class="section-title">Invoice Details</h2>
+                    <div class="detail-row">
+                        <label for="invoice-number" class="detail-label required-field">Invoice #:</label>
+                        <input type="text" id="invoice-number" placeholder="INV-12345" 
+                               class="form-input detail-input" value="INV-001" required>
+                    </div>
+                    <div class="detail-row">
+                        <label for="invoice-date" class="detail-label required-field">Invoice Date:</label>
+                        <input type="date" id="invoice-date" 
+                               class="form-input detail-input" required>
+                    </div>
+                    <div class="detail-row">
+                        <label for="pay-terms" class="detail-label required-field">Payment Terms:</label>
+                        <select id="pay-terms" class="form-select detail-input" required>
+                            <option>Due on Receipt</option>
+                            <option>Net 15</option>
+                            <option selected>Net 30</option>
+                            <option>Net 45</option>
+                            <option>Net 60</option>
+                        </select>
+                    </div>
+                    <div class="detail-row">
+                        <label for="po-number" class="detail-label">PO# (Optional):</label>
+                        <input type="text" id="po-number" placeholder="Enter PO Number" 
+                               class="form-input detail-input">
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Service Period Section -->
+        <section class="form-section">
+            <div class="service-period-section">
+                <h2 class="section-title required-field">Service Period</h2>
+                <div class="grid-2">
+                    <div>
+                        <label for="service-start" class="detail-label">Service Start Date</label>
+                        <input type="date" id="service-start" 
+                               class="form-input" required>
+                    </div>
+                    <div>
+                        <label for="service-end" class="detail-label">Service End Date</label>
+                        <input type="date" id="service-end" 
+                               class="form-input" required>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+<!-- Invoice Items Section -->
+        <section class="form-section">
+            <h2 class="section-title">Invoice Items</h2>
+            <table class="invoice-table">
+                <thead class="table-header">
+                    <tr>
+                        <th>Service / Item</th>
+                        <th>Job Code</th>
+                        <th>Hours/QTY</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-items">
+                    <!-- Item rows will be dynamically added here -->
+                </tbody>
+            </table>
+            <button type="button" id="add-item-btn" class="btn btn-primary add-item-btn no-print">
+                + Add Item
+            </button>
+            
+            <!-- Hidden service options for dropdown -->
+            <div id="service-options" style="display: none;">
+                <optgroup label="Pre-Production Labor">
+                    <option>A. Audio Mixer</option>
+                    <option>A. Cam Operator</option>
+                    <option>A. Director</option>
+                    <option>A. Producer</option>
+                    <option>A. Producer - Associate Producer</option>
+                    <option>A. Producer - Creative Producer</option>
+                    <option>A. Producer - Executive Producer</option>
+                    <option>A. Production Coordinator / PA</option>
+                    <option>A. Production Manager</option>
+                    <option>A. Assistant Camera</option>
+                    <option>A. Assistant Director</option>
+                    <option>A. Best Boy Electric</option>
+                    <option>A. Gaffer</option>
+                    <option>A. Best Boy Grip</option>
+                    <option>A. Key Grip</option>
+                    <option>A. Director of Photography</option>
+                    <option>A. Director of Photography - Commercial</option>
+                    <option>A. Director - Commercial</option>
+                    <option>A. DIT</option>
+                    <option>A. Hair & Makeup Artist</option>
+                    <option>A. Jib</option>
+                    <option>A. Jib Assist</option>
+                    <option>A. Live Audio Mixer</option>
+                    <option>A. Livestream Graphic Tech</option>
+                    <option>A. Photographer</option>
+                    <option>A. Photographer - Commercial</option>
+                    <option>A. Producer - Field</option>
+                    <option>A. Production Designer</option>
+                    <option>A. Production Sound Engineer</option>
+                    <option>A. Script Supervisor</option>
+                    <option>A. Set Medic</option>
+                    <option>A. Steadicam</option>
+                    <option>A. Swing</option>
+                    <option>A. Technical Director</option>
+                    <option>A. Teleprompter Operator</option>
+                    <option>A. VTR Operator</option>
+                    <option>A. 2nd Assistant Camera</option>
+                    <option>A. Electric</option>
+                    <option>A. Grip</option>
+                    <option>A. Hair and Makeup Assistant</option>
+                    <option>A. Location Scout</option>
+                    <option>A. 2nd Assistant Director</option>
+                    <option>A. Teamsters / Driver</option>
+                    <option>A. Pre-Production Fringe</option>
+                </optgroup>
+                <optgroup label="Shoot Labor">
+                    <option>B. Audio Mixer</option>
+                    <option>B. Cam Operator</option>
+                    <option>B. Director</option>
+                    <option>B. Producer</option>
+                    <option>B. Producer - Associate Producer</option>
+                    <option>B. Producer - Creative Producer</option>
+                    <option>B. Producer - Executive Producer</option>
+                    <option>B. Production Coordinator / PA</option>
+                    <option>B. Production Manager</option>
+                    <option>B. Assistant Camera</option>
+                    <option>B. Assistant Director</option>
+                    <option>B. Best Boy Electric</option>
+                    <option>B. Gaffer</option>
+                    <option>B. Best Boy Grip</option>
+                    <option>B. Key Grip</option>
+                    <option>B. Director of Photography</option>
+                    <option>B. Director of Photography - Commercial</option>
+                    <option>B. Director - Commercial</option>
+                    <option>B. DIT</option>
+                    <option>B. Hair & Makeup Artist</option>
+                    <option>B. Jib</option>
+                    <option>B. Jib Assist</option>
+                    <option>B. Live Audio Mixer</option>
+                    <option>B. Livestream Graphic Tech</option>
+                    <option>B. Photographer</option>
+                    <option>B. Photographer - Commercial</option>
+                    <option>B. Producer - Field</option>
+                    <option>B. Production Designer</option>
+                    <option>B. Production Sound Engineer</option>
+                    <option>B. Script Supervisor</option>
+                    <option>B. Set Medic</option>
+                    <option>B. Steadicam</option>
+                    <option>B. Swing</option>
+                    <option>B. Technical Director</option>
+                    <option>B. Teleprompter Operator</option>
+                    <option>B. VTR Operator</option>
+                    <option>B. 2nd Assistant Camera</option>
+                    <option>B. Electric</option>
+                    <option>B. Grip</option>
+                    <option>B. Hair and Makeup Assistant</option>
+                    <option>B. Location Scout</option>
+                    <option>B. 2nd Assistant Director</option>
+                    <option>B. Teamsters / Driver</option>
+                    <option>B. Shoot Fringe</option>
+                </optgroup>
+                <optgroup label="Prep & Wrap Expenses">
+                    <option>C. Craft Services</option>
+                    <option>C. Meals - Per Diem</option>
+                    <option>C. Hotels</option>
+                    <option>C. Taxi & Rideshare</option>
+                    <option>C. Car Rental</option>
+                    <option>C. Casting Director</option>
+                </optgroup>
+                <optgroup label="Location Expenses">
+                    <option>D. Location Rental</option>
+                    <option>D. Drone Permit</option>
+                    <option>D. Set Security</option>
+                    <option>D. Cargo Van / Production Trucking / Camera Truck</option>
+                    <option>D. Car Rental</option>
+                    <option>D. Other Vehicles</option>
+                    <option>D. Parking/Tolls/Gas</option>
+                    <option>D. Baggage Fees</option>
+                    <option>D. Airfare</option>
+                    <option>D. Hotel</option>
+                    <option>D. Per Diems</option>
+                    <option>D. Site Rep</option>
+                    <option>D. Catering</option>
+                    <option>D. Craft Services</option>
+                    <option>D. Taxi & Rideshare</option>
+                    <option>D. Kit Rental</option>
+                </optgroup>
+                <optgroup label="Props and Wardrobe">
+                    <option>E. Prop Rental</option>
+                    <option>E. Prop Purchase</option>
+                    <option>E. Prop Fabrication</option>
+                    <option>E. Wardrobe Rental</option>
+                    <option>E. Wardrobe Purchase</option>
+                </optgroup>
+                <optgroup label="Studio Costs">
+                    <option>F. Rental For Build Days</option>
+                    <option>F. Build OT Hours</option>
+                    <option>F. Rental for Pre-Light Days</option>
+                    <option>F. Pre-Light OT Hours</option>
+                    <option>F. Rental for Shoot Days</option>
+                    <option>F. Shoot OT Hours</option>
+                    <option>F. Rental For Strike Days</option>
+                    <option>F. Strike OT Hours</option>
+                    <option>F. Generator & Operator</option>
+                    <option>F. Stage Manager/Studio Security</option>
+                    <option>F. Power Charges</option>
+                    <option>F. Misc. Studio Charges</option>
+                    <option>F. Crew Parking</option>
+                    <option>F. Condor/Scissor Lift</option>
+                    <option>F. Steeldeck</option>
+                </optgroup>
+                <optgroup label="Art Department Labor">
+                    <option>G. Production Designer</option>
+                    <option>G. Art Department Coordinator</option>
+                    <option>G. Prop Master</option>
+                    <option>G. Assistant Props</option>
+                    <option>G. Swing</option>
+                    <option>G. Leadperson</option>
+                    <option>G. Set Designer</option>
+                    <option>G. Set Dresser</option>
+                    <option>G. Wardrobe Stylist</option>
+                    <option>G. Wardrobe Assistant</option>
+                    <option>G. Scenics</option>
+                    <option>G. Grips / Riggers</option>
+                    <option>G. Art Department Fringe</option>
+                </optgroup>
+                <optgroup label="Art Department Expenses">
+                    <option>H. Set Dressing Rentals</option>
+                    <option>H. Set Dressing Purchases</option>
+                    <option>H. Art Department Prod Supplies</option>
+                    <option>H. Art Department Kit Rentals</option>
+                    <option>H. Special Effects Rentals</option>
+                    <option>H. Art Department Trucking</option>
+                    <option>H. Outside Construction</option>
+                    <option>H. Car Prep</option>
+                    <option>H. Art Department Meals</option>
+                    <option>H. Messengers/Deliveries</option>
+                </optgroup>
+                <optgroup label="Equipment Rentals">
+                    <option>I. Camera Rental</option>
+                    <option>I. Sound Rental</option>
+                    <option>I. Lighting Rental</option>
+                    <option>I. Grip Rental</option>
+                    <option>I. Generator Rental</option>
+                    <option>I. Crane Rental</option>
+                    <option>I. VTR Rental</option>
+                    <option>I. Walkie Talkie Rental</option>
+                    <option>I. Dolly Rental</option>
+                    <option>I. Helicopter</option>
+                    <option>I. Production Supplies</option>
+                    <option>I. Jib Arm</option>
+                    <option>I. Crane Head</option>
+                    <option>I. Camera Accessories</option>
+                    <option>I. Expendables</option>
+                    <option>I. Lenses</option>
+                    <option>I. Cinedrives</option>
+                </optgroup>
+                <optgroup label="Media">
+                    <option>J. Media / Drives</option>
+                    <option>J. Film</option>
+                    <option>J. Transcode / Transfer</option>
+                    <option>J. Process</option>
+                    <option>J. Dailies</option>
+                </optgroup>
+                <optgroup label="Miscellaneous Production Cost">
+                    <option>K. Insurance</option>
+                    <option>K. Misc Other Production Costs</option>
+                    <option>K. Specialty Service</option>
+                </optgroup>
+                <optgroup label="Talent Expenses">
+                    <option>L. Talent Fee</option>
+                    <option>L. Talent Flights</option>
+                    <option>L. Talent Hotels</option>
+                    <option>L. Talent Meals</option>
+                    <option>L. Talent Manager</option>
+                    <option>L. Other Talent Related Expenses</option>
+                    <option>L. Agency Fees</option>
+                </optgroup>
+                <optgroup label="Post Production Labor">
+                    <option>M. Editor</option>
+                    <option>M. Editor - Assistant</option>
+                    <option>M. Editor - Senior</option>
+                    <option>M. CMS Manager</option>
+                    <option>M. Animator (2D)</option>
+                    <option>M. Animator - Senior (3D)</option>
+                    <option>M. Producer - Post</option>
+                    <option>M. VFX Supervisor</option>
+                    <option>M. Post Audio Engineer</option>
+                    <option>M. Colorist</option>
+                    <option>M. VO Artist</option>
+                    <option>M. Graphic Designer</option>
+                    <option>M. Graphic Designer - Senior</option>
+                    <option>M. Animation Supervisor</option>
+                    <option>M. Post Production Supervisor</option>
+                    <option>M. Post Production Fringe</option>
+                </optgroup>
+                <optgroup label="Post Production Expenses">
+                    <option>N. Music Clearance</option>
+                    <option>N. Music Library Fees</option>
+                    <option>N. Stock Image Licensing</option>
+                    <option>N. Stock Video Licensing</option>
+                    <option>N. Transcriptions and Translations</option>
+                </optgroup>
+                <optgroup label="Creative and Strategic Services">
+                    <option>O. Art Director</option>
+                    <option>O. Art Director - Senior</option>
+                    <option>O. Copywriter</option>
+                    <option>O. Copywriter - Senior</option>
+                    <option>O. Creative Director</option>
+                    <option>O. Creative Director - Associate</option>
+                    <option>O. Graphic Designer</option>
+                    <option>O. Graphic Designer - Senior</option>
+                    <option>O. UI/UX Designer</option>
+                    <option>O. Experiential Designer</option>
+                    <option>O. Experiential Producer</option>
+                    <option>O. Illustrator</option>
+                    <option>O. Strategy - Creative Strategist</option>
+                    <option>O. Strategy - Strategy Director</option>
+                    <option>O. Storyboard Artist</option>
+                    <option>O. Group Creative Director</option>
+                    <option>O. Creative and Strategic Services Fringe</option>
+                </optgroup>
+                <optgroup label="Creative and Strategic Services Expenses">
+                    <option>P. Airfare</option>
+                    <option>P. Hotel</option>
+                    <option>P. Per Diems</option>
+                    <option>P. Taxi & Rideshare</option>
+                    <option>P. Car Rental</option>
+                    <option>P. Catering</option>
+                    <option>P. Fabrication</option>
+                    <option>P. Furniture and Decor</option>
+                    <option>P. Signage and Print</option>
+                    <option>P. Shipping and Postage</option>
+                </optgroup>
+                <optgroup label="Account and Project Management">
+                    <option>Q. Account Manager</option>
+                    <option>Q. Account Director</option>
+                    <option>Q. Project Manager</option>
+                    <option>Q. Project Manager - Senior</option>
+                    <option>Q. Supervising Project Manager</option>
+                </optgroup>
+                <optgroup label="Account and Project Management Expenses">
+                    <option>R. Airfare</option>
+                    <option>R. Hotel</option>
+                    <option>R. Per Diems</option>
+                    <option>R. Taxi & Rideshare</option>
+                    <option>R. Car Rental</option>
+                </optgroup>
+            </div>
+        </section>
+
+        <!-- Totals Section -->
+        <section class="form-section">
+            <div class="totals-section">
+                <div class="totals-container">
+                    <div class="total-row">
+                        <span class="total-label">Subtotal:</span>
+                        <span id="subtotal" class="total-value">$0.00</span>
+                    </div>
+                    <div class="total-row">
+                        <label for="tax-rate" class="total-label">Tax (%):</label>
+                        <input type="number" id="tax-rate" value="0" min="0" max="100" step="0.1" 
+                               class="tax-input">
+                    </div>
+                    <div class="total-row">
+                        <span class="total-label">Total:</span>
+                        <span id="grand-total" class="total-value grand-total">$0.00</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Footer Section -->
+        <footer class="invoice-footer no-print">
+            <div class="footer-message">
+                <h3>Thank you for your business!</h3>
+                <p>Please ensure all required fields are completed before downloading or submitting.</p>
+            </div>
+            
+            <div class="button-group">
+                <button type="button" id="download-pdf-btn" class="btn btn-success">
+                    Download PDF
+                </button>
+                <button type="button" id="submit-btn" class="btn btn-primary">
+                    Submit to Spreadsheet
+                </button>
+            </div>
+            
+            <div id="status-message" class="status-message"></div>
+        </footer>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="invoice_scripts_fixed.js"></script>
+</body>
+</html>
