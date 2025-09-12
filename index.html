@@ -45,7 +45,6 @@
             --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --z-dropdown: 1000;
         }
 
         * {
@@ -70,7 +69,6 @@
             border-radius: var(--border-radius-lg);
             box-shadow: var(--shadow);
             border: 1px solid var(--color-gray-200);
-            position: relative;
         }
 
         .invoice-header {
@@ -167,7 +165,7 @@
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
 
-        /* FIXED: Only apply dropdown arrow to actual select elements */
+        /* Only apply dropdown arrow to actual select elements */
         select.form-select {
             width: 100%;
             padding: var(--space-2) var(--space-3);
@@ -194,7 +192,14 @@
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
 
-        /* FIXED: Tax input without dropdown styling */
+        /* Style optgroups */
+        optgroup {
+            font-weight: 600;
+            color: var(--color-gray-700);
+            background: var(--color-gray-50);
+        }
+
+        /* Tax input without dropdown styling */
         .tax-input {
             width: 60px !important;
             padding: var(--space-1) var(--space-2) !important;
@@ -204,7 +209,6 @@
             font-size: var(--font-size-sm) !important;
             height: 28px !important;
             background: white !important;
-            /* No dropdown arrow */
             appearance: textfield !important;
             -moz-appearance: textfield !important;
         }
@@ -624,7 +628,7 @@
                                class="form-input" required>
                     </div>
                     
-                    <!-- Cost Center Dropdown -->
+                    <!-- Cost Center -->
                     <div class="cost-center-field">
                         <label for="cost-center" class="detail-label required-field">Cost Center</label>
                         <select id="cost-center" class="form-select" required>
@@ -694,23 +698,21 @@
         <!-- Invoice Items Section -->
         <section class="form-section">
             <h2 class="section-title">Invoice Items</h2>
-            <div class="table-wrapper">
-                <table class="invoice-table">
-                    <thead class="table-header">
-                        <tr>
-                            <th>Service / Item</th>
-                            <th>Job Code</th>
-                            <th>Hours/QTY</th>
-                            <th>Rate</th>
-                            <th>Amount</th>
-                            <th class="no-print">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody id="invoice-items">
-                        <!-- Items will be added here dynamically -->
-                    </tbody>
-                </table>
-            </div>
+            <table class="invoice-table">
+                <thead class="table-header">
+                    <tr>
+                        <th>Service / Item</th>
+                        <th>Job Code</th>
+                        <th>Hours/QTY</th>
+                        <th>Rate</th>
+                        <th>Amount</th>
+                        <th class="no-print">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="invoice-items">
+                    <!-- Item rows will be dynamically added here -->
+                </tbody>
+            </table>
             <button type="button" id="add-item-btn" class="btn btn-primary add-item-btn no-print">
                 + Add Item
             </button>
@@ -745,8 +747,8 @@
             </div>
             
             <div class="button-group">
-                <button type="button" id="print-btn" class="btn btn-success">
-                    Print / Save as PDF
+                <button type="button" id="download-pdf-btn" class="btn btn-success">
+                    Download PDF
                 </button>
                 <button type="button" id="submit-btn" class="btn btn-primary">
                     Submit to Spreadsheet
@@ -765,128 +767,11 @@
             const taxRateEl = document.getElementById('tax-rate');
             const grandTotalEl = document.getElementById('grand-total');
             const submitBtn = document.getElementById('submit-btn');
-            const printBtn = document.getElementById('print-btn');
+            const downloadPdfBtn = document.getElementById('download-pdf-btn');
             const statusMessage = document.getElementById('status-message');
 
             // Configuration
             const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
-
-            // Service options
-            const serviceOptions = [
-                // Pre-Production Labor
-                'A. Audio Mixer', 'A. Cam Operator', 'A. Director', 'A. Producer',
-                'A. Producer - Associate Producer', 'A. Producer - Creative Producer', 
-                'A. Producer - Executive Producer', 'A. Production Coordinator / PA',
-                'A. Production Manager', 'A. Assistant Camera', 'A. Assistant Director',
-                'A. Best Boy Electric', 'A. Gaffer', 'A. Best Boy Grip', 'A. Key Grip',
-                'A. Director of Photography', 'A. Director of Photography - Commercial',
-                'A. Director - Commercial', 'A. DIT', 'A. Hair & Makeup Artist', 'A. Jib',
-                'A. Jib Assist', 'A. Live Audio Mixer', 'A. Livestream Graphic Tech',
-                'A. Photographer', 'A. Photographer - Commercial', 'A. Producer - Field',
-                'A. Production Designer', 'A. Production Sound Engineer', 'A. Script Supervisor',
-                'A. Set Medic', 'A. Steadicam', 'A. Swing', 'A. Technical Director',
-                'A. Teleprompter Operator', 'A. VTR Operator', 'A. 2nd Assistant Camera',
-                'A. Electric', 'A. Grip', 'A. Hair and Makeup Assistant', 'A. Location Scout',
-                'A. 2nd Assistant Director', 'A. Teamsters / Driver', 'A. Pre-Production Fringe',
-                
-                // Shoot Labor
-                'B. Audio Mixer', 'B. Cam Operator', 'B. Director', 'B. Producer',
-                'B. Producer - Associate Producer', 'B. Producer - Creative Producer',
-                'B. Producer - Executive Producer', 'B. Production Coordinator / PA',
-                'B. Production Manager', 'B. Assistant Camera', 'B. Assistant Director',
-                'B. Best Boy Electric', 'B. Gaffer', 'B. Best Boy Grip', 'B. Key Grip',
-                'B. Director of Photography', 'B. Director of Photography - Commercial',
-                'B. Director - Commercial', 'B. DIT', 'B. Hair & Makeup Artist', 'B. Jib',
-                'B. Jib Assist', 'B. Live Audio Mixer', 'B. Livestream Graphic Tech',
-                'B. Photographer', 'B. Photographer - Commercial', 'B. Producer - Field',
-                'B. Production Designer', 'B. Production Sound Engineer', 'B. Script Supervisor',
-                'B. Set Medic', 'B. Steadicam', 'B. Swing', 'B. Technical Director',
-                'B. Teleprompter Operator', 'B. VTR Operator', 'B. 2nd Assistant Camera',
-                'B. Electric', 'B. Grip', 'B. Hair and Makeup Assistant', 'B. Location Scout',
-                'B. 2nd Assistant Director', 'B. Teamsters / Driver', 'B. Shoot Fringe',
-                
-                // Prep & Wrap Expenses
-                'C. Craft Services', 'C. Meals - Per Diem', 'C. Hotels', 'C. Taxi & Rideshare',
-                'C. Car Rental', 'C. Casting Director',
-                
-                // Location Expenses
-                'D. Location Rental', 'D. Drone Permit', 'D. Set Security',
-                'D. Cargo Van / Production Trucking / Camera Truck', 'D. Car Rental',
-                'D. Other Vehicles', 'D. Parking/Tolls/Gas', 'D. Baggage Fees', 'D. Airfare',
-                'D. Hotel', 'D. Per Diems', 'D. Site Rep', 'D. Catering', 'D. Craft Services',
-                'D. Taxi & Rideshare', 'D. Kit Rental',
-                
-                // Props and Wardrobe
-                'E. Prop Rental', 'E. Prop Purchase', 'E. Prop Fabrication',
-                'E. Wardrobe Rental', 'E. Wardrobe Purchase',
-                
-                // Studio Costs
-                'F. Rental For Build Days', 'F. Build OT Hours', 'F. Rental for Pre-Light Days',
-                'F. Pre-Light OT Hours', 'F. Rental for Shoot Days', 'F. Shoot OT Hours',
-                'F. Rental For Strike Days', 'F. Strike OT Hours', 'F. Generator & Operator',
-                'F. Stage Manager/Studio Security', 'F. Power Charges', 'F. Misc. Studio Charges',
-                'F. Crew Parking', 'F. Condor/Scissor Lift', 'F. Steeldeck',
-                
-                // Art Department Labor
-                'G. Production Designer', 'G. Art Department Coordinator', 'G. Prop Master',
-                'G. Assistant Props', 'G. Swing', 'G. Leadperson', 'G. Set Designer',
-                'G. Set Dresser', 'G. Wardrobe Stylist', 'G. Wardrobe Assistant',
-                'G. Scenics', 'G. Grips / Riggers', 'G. Art Department Fringe',
-                
-                // Art Department Expenses
-                'H. Set Dressing Rentals', 'H. Set Dressing Purchases', 'H. Art Department Prod Supplies',
-                'H. Art Department Kit Rentals', 'H. Special Effects Rentals', 'H. Art Department Trucking',
-                'H. Outside Construction', 'H. Car Prep', 'H. Art Department Meals',
-                'H. Messengers/Deliveries',
-                
-                // Equipment Rentals
-                'I. Camera Rental', 'I. Sound Rental', 'I. Lighting Rental', 'I. Grip Rental',
-                'I. Generator Rental', 'I. Crane Rental', 'I. VTR Rental', 'I. Walkie Talkie Rental',
-                'I. Dolly Rental', 'I. Helicopter', 'I. Production Supplies', 'I. Jib Arm',
-                'I. Crane Head', 'I. Camera Accessories', 'I. Expendables', 'I. Lenses',
-                'I. Cinedrives',
-                
-                // Media
-                'J. Media / Drives', 'J. Film', 'J. Transcode / Transfer', 'J. Process', 'J. Dailies',
-                
-                // Miscellaneous Production Cost
-                'K. Insurance', 'K. Misc Other Production Costs', 'K. Specialty Service',
-                
-                // Talent Expenses
-                'L. Talent Fee', 'L. Talent Flights', 'L. Talent Hotels', 'L. Talent Meals',
-                'L. Talent Manager', 'L. Other Talent Related Expenses', 'L. Agency Fees',
-                
-                // Post Production Labor
-                'M. Editor', 'M. Editor - Assistant', 'M. Editor - Senior', 'M. CMS Manager',
-                'M. Animator (2D)', 'M. Animator - Senior (3D)', 'M. Producer - Post',
-                'M. VFX Supervisor', 'M. Post Audio Engineer', 'M. Colorist', 'M. VO Artist',
-                'M. Graphic Designer', 'M. Graphic Designer - Senior', 'M. Animation Supervisor',
-                'M. Post Production Supervisor', 'M. Post Production Fringe',
-                
-                // Post Production Expenses
-                'N. Music Clearance', 'N. Music Library Fees', 'N. Stock Image Licensing',
-                'N. Stock Video Licensing', 'N. Transcriptions and Translations',
-                
-                // Creative and Strategic Services
-                'O. Art Director', 'O. Art Director - Senior', 'O. Copywriter', 'O. Copywriter - Senior',
-                'O. Creative Director', 'O. Creative Director - Associate', 'O. Graphic Designer',
-                'O. Graphic Designer - Senior', 'O. UI/UX Designer', 'O. Experiential Designer',
-                'O. Experiential Producer', 'O. Illustrator', 'O. Strategy - Creative Strategist',
-                'O. Strategy - Strategy Director', 'O. Storyboard Artist', 'O. Group Creative Director',
-                'O. Creative and Strategic Services Fringe',
-                
-                // Creative and Strategic Services Expenses
-                'P. Airfare', 'P. Hotel', 'P. Per Diems', 'P. Taxi & Rideshare', 'P. Car Rental',
-                'P. Catering', 'P. Fabrication', 'P. Furniture and Decor', 'P. Signage and Print',
-                'P. Shipping and Postage',
-                
-                // Account and Project Management
-                'Q. Account Manager', 'Q. Account Director', 'Q. Project Manager',
-                'Q. Project Manager - Senior', 'Q. Supervising Project Manager',
-                
-                // Account and Project Management Expenses
-                'R. Airfare', 'R. Hotel', 'R. Per Diems', 'R. Taxi & Rideshare', 'R. Car Rental'
-            ];
 
             // Initialize default dates
             const initializeDates = () => {
@@ -898,21 +783,294 @@
                 document.getElementById('service-end').value = isoDate;
             };
 
-            // Create new item row
+            // Create new item row with grouped dropdown
             const createItemRow = (copyData = null) => {
                 const row = document.createElement('tr');
                 row.className = 'table-row';
-                
-                // Build service options HTML
-                const serviceOptionsHTML = serviceOptions.map(service => 
-                    `<option value="${service}">${service}</option>`
-                ).join('');
                 
                 row.innerHTML = `
                     <td class="table-cell">
                         <select class="form-select service-item">
                             <option value="" disabled ${!copyData ? 'selected' : ''}>Select a service...</option>
-                            ${serviceOptionsHTML}
+                            <optgroup label="Pre-Production Labor">
+                                <option>A. Audio Mixer</option>
+                                <option>A. Cam Operator</option>
+                                <option>A. Director</option>
+                                <option>A. Producer</option>
+                                <option>A. Producer - Associate Producer</option>
+                                <option>A. Producer - Creative Producer</option>
+                                <option>A. Producer - Executive Producer</option>
+                                <option>A. Production Coordinator / PA</option>
+                                <option>A. Production Manager</option>
+                                <option>A. Assistant Camera</option>
+                                <option>A. Assistant Director</option>
+                                <option>A. Best Boy Electric</option>
+                                <option>A. Gaffer</option>
+                                <option>A. Best Boy Grip</option>
+                                <option>A. Key Grip</option>
+                                <option>A. Director of Photography</option>
+                                <option>A. Director of Photography - Commercial</option>
+                                <option>A. Director - Commercial</option>
+                                <option>A. DIT</option>
+                                <option>A. Hair & Makeup Artist</option>
+                                <option>A. Jib</option>
+                                <option>A. Jib Assist</option>
+                                <option>A. Live Audio Mixer</option>
+                                <option>A. Livestream Graphic Tech</option>
+                                <option>A. Photographer</option>
+                                <option>A. Photographer - Commercial</option>
+                                <option>A. Producer - Field</option>
+                                <option>A. Production Designer</option>
+                                <option>A. Production Sound Engineer</option>
+                                <option>A. Script Supervisor</option>
+                                <option>A. Set Medic</option>
+                                <option>A. Steadicam</option>
+                                <option>A. Swing</option>
+                                <option>A. Technical Director</option>
+                                <option>A. Teleprompter Operator</option>
+                                <option>A. VTR Operator</option>
+                                <option>A. 2nd Assistant Camera</option>
+                                <option>A. Electric</option>
+                                <option>A. Grip</option>
+                                <option>A. Hair and Makeup Assistant</option>
+                                <option>A. Location Scout</option>
+                                <option>A. 2nd Assistant Director</option>
+                                <option>A. Teamsters / Driver</option>
+                                <option>A. Pre-Production Fringe</option>
+                            </optgroup>
+                            <optgroup label="Shoot Labor">
+                                <option>B. Audio Mixer</option>
+                                <option>B. Cam Operator</option>
+                                <option>B. Director</option>
+                                <option>B. Producer</option>
+                                <option>B. Producer - Associate Producer</option>
+                                <option>B. Producer - Creative Producer</option>
+                                <option>B. Producer - Executive Producer</option>
+                                <option>B. Production Coordinator / PA</option>
+                                <option>B. Production Manager</option>
+                                <option>B. Assistant Camera</option>
+                                <option>B. Assistant Director</option>
+                                <option>B. Best Boy Electric</option>
+                                <option>B. Gaffer</option>
+                                <option>B. Best Boy Grip</option>
+                                <option>B. Key Grip</option>
+                                <option>B. Director of Photography</option>
+                                <option>B. Director of Photography - Commercial</option>
+                                <option>B. Director - Commercial</option>
+                                <option>B. DIT</option>
+                                <option>B. Hair & Makeup Artist</option>
+                                <option>B. Jib</option>
+                                <option>B. Jib Assist</option>
+                                <option>B. Live Audio Mixer</option>
+                                <option>B. Livestream Graphic Tech</option>
+                                <option>B. Photographer</option>
+                                <option>B. Photographer - Commercial</option>
+                                <option>B. Producer - Field</option>
+                                <option>B. Production Designer</option>
+                                <option>B. Production Sound Engineer</option>
+                                <option>B. Script Supervisor</option>
+                                <option>B. Set Medic</option>
+                                <option>B. Steadicam</option>
+                                <option>B. Swing</option>
+                                <option>B. Technical Director</option>
+                                <option>B. Teleprompter Operator</option>
+                                <option>B. VTR Operator</option>
+                                <option>B. 2nd Assistant Camera</option>
+                                <option>B. Electric</option>
+                                <option>B. Grip</option>
+                                <option>B. Hair and Makeup Assistant</option>
+                                <option>B. Location Scout</option>
+                                <option>B. 2nd Assistant Director</option>
+                                <option>B. Teamsters / Driver</option>
+                                <option>B. Shoot Fringe</option>
+                            </optgroup>
+                            <optgroup label="Prep & Wrap Expenses">
+                                <option>C. Craft Services</option>
+                                <option>C. Meals - Per Diem</option>
+                                <option>C. Hotels</option>
+                                <option>C. Taxi & Rideshare</option>
+                                <option>C. Car Rental</option>
+                                <option>C. Casting Director</option>
+                            </optgroup>
+                            <optgroup label="Location Expenses">
+                                <option>D. Location Rental</option>
+                                <option>D. Drone Permit</option>
+                                <option>D. Set Security</option>
+                                <option>D. Cargo Van / Production Trucking / Camera Truck</option>
+                                <option>D. Car Rental</option>
+                                <option>D. Other Vehicles</option>
+                                <option>D. Parking/Tolls/Gas</option>
+                                <option>D. Baggage Fees</option>
+                                <option>D. Airfare</option>
+                                <option>D. Hotel</option>
+                                <option>D. Per Diems</option>
+                                <option>D. Site Rep</option>
+                                <option>D. Catering</option>
+                                <option>D. Craft Services</option>
+                                <option>D. Taxi & Rideshare</option>
+                                <option>D. Kit Rental</option>
+                            </optgroup>
+                            <optgroup label="Props and Wardrobe">
+                                <option>E. Prop Rental</option>
+                                <option>E. Prop Purchase</option>
+                                <option>E. Prop Fabrication</option>
+                                <option>E. Wardrobe Rental</option>
+                                <option>E. Wardrobe Purchase</option>
+                            </optgroup>
+                            <optgroup label="Studio Costs">
+                                <option>F. Rental For Build Days</option>
+                                <option>F. Build OT Hours</option>
+                                <option>F. Rental for Pre-Light Days</option>
+                                <option>F. Pre-Light OT Hours</option>
+                                <option>F. Rental for Shoot Days</option>
+                                <option>F. Shoot OT Hours</option>
+                                <option>F. Rental For Strike Days</option>
+                                <option>F. Strike OT Hours</option>
+                                <option>F. Generator & Operator</option>
+                                <option>F. Stage Manager/Studio Security</option>
+                                <option>F. Power Charges</option>
+                                <option>F. Misc. Studio Charges</option>
+                                <option>F. Crew Parking</option>
+                                <option>F. Condor/Scissor Lift</option>
+                                <option>F. Steeldeck</option>
+                            </optgroup>
+                            <optgroup label="Art Department Labor">
+                                <option>G. Production Designer</option>
+                                <option>G. Art Department Coordinator</option>
+                                <option>G. Prop Master</option>
+                                <option>G. Assistant Props</option>
+                                <option>G. Swing</option>
+                                <option>G. Leadperson</option>
+                                <option>G. Set Designer</option>
+                                <option>G. Set Dresser</option>
+                                <option>G. Wardrobe Stylist</option>
+                                <option>G. Wardrobe Assistant</option>
+                                <option>G. Scenics</option>
+                                <option>G. Grips / Riggers</option>
+                                <option>G. Art Department Fringe</option>
+                            </optgroup>
+                            <optgroup label="Art Department Expenses">
+                                <option>H. Set Dressing Rentals</option>
+                                <option>H. Set Dressing Purchases</option>
+                                <option>H. Art Department Prod Supplies</option>
+                                <option>H. Art Department Kit Rentals</option>
+                                <option>H. Special Effects Rentals</option>
+                                <option>H. Art Department Trucking</option>
+                                <option>H. Outside Construction</option>
+                                <option>H. Car Prep</option>
+                                <option>H. Art Department Meals</option>
+                                <option>H. Messengers/Deliveries</option>
+                            </optgroup>
+                            <optgroup label="Equipment Rentals">
+                                <option>I. Camera Rental</option>
+                                <option>I. Sound Rental</option>
+                                <option>I. Lighting Rental</option>
+                                <option>I. Grip Rental</option>
+                                <option>I. Generator Rental</option>
+                                <option>I. Crane Rental</option>
+                                <option>I. VTR Rental</option>
+                                <option>I. Walkie Talkie Rental</option>
+                                <option>I. Dolly Rental</option>
+                                <option>I. Helicopter</option>
+                                <option>I. Production Supplies</option>
+                                <option>I. Jib Arm</option>
+                                <option>I. Crane Head</option>
+                                <option>I. Camera Accessories</option>
+                                <option>I. Expendables</option>
+                                <option>I. Lenses</option>
+                                <option>I. Cinedrives</option>
+                            </optgroup>
+                            <optgroup label="Media">
+                                <option>J. Media / Drives</option>
+                                <option>J. Film</option>
+                                <option>J. Transcode / Transfer</option>
+                                <option>J. Process</option>
+                                <option>J. Dailies</option>
+                            </optgroup>
+                            <optgroup label="Miscellaneous Production Cost">
+                                <option>K. Insurance</option>
+                                <option>K. Misc Other Production Costs</option>
+                                <option>K. Specialty Service</option>
+                            </optgroup>
+                            <optgroup label="Talent Expenses">
+                                <option>L. Talent Fee</option>
+                                <option>L. Talent Flights</option>
+                                <option>L. Talent Hotels</option>
+                                <option>L. Talent Meals</option>
+                                <option>L. Talent Manager</option>
+                                <option>L. Other Talent Related Expenses</option>
+                                <option>L. Agency Fees</option>
+                            </optgroup>
+                            <optgroup label="Post Production Labor">
+                                <option>M. Editor</option>
+                                <option>M. Editor - Assistant</option>
+                                <option>M. Editor - Senior</option>
+                                <option>M. CMS Manager</option>
+                                <option>M. Animator (2D)</option>
+                                <option>M. Animator - Senior (3D)</option>
+                                <option>M. Producer - Post</option>
+                                <option>M. VFX Supervisor</option>
+                                <option>M. Post Audio Engineer</option>
+                                <option>M. Colorist</option>
+                                <option>M. VO Artist</option>
+                                <option>M. Graphic Designer</option>
+                                <option>M. Graphic Designer - Senior</option>
+                                <option>M. Animation Supervisor</option>
+                                <option>M. Post Production Supervisor</option>
+                                <option>M. Post Production Fringe</option>
+                            </optgroup>
+                            <optgroup label="Post Production Expenses">
+                                <option>N. Music Clearance</option>
+                                <option>N. Music Library Fees</option>
+                                <option>N. Stock Image Licensing</option>
+                                <option>N. Stock Video Licensing</option>
+                                <option>N. Transcriptions and Translations</option>
+                            </optgroup>
+                            <optgroup label="Creative and Strategic Services">
+                                <option>O. Art Director</option>
+                                <option>O. Art Director - Senior</option>
+                                <option>O. Copywriter</option>
+                                <option>O. Copywriter - Senior</option>
+                                <option>O. Creative Director</option>
+                                <option>O. Creative Director - Associate</option>
+                                <option>O. Graphic Designer</option>
+                                <option>O. Graphic Designer - Senior</option>
+                                <option>O. UI/UX Designer</option>
+                                <option>O. Experiential Designer</option>
+                                <option>O. Experiential Producer</option>
+                                <option>O. Illustrator</option>
+                                <option>O. Strategy - Creative Strategist</option>
+                                <option>O. Strategy - Strategy Director</option>
+                                <option>O. Storyboard Artist</option>
+                                <option>O. Group Creative Director</option>
+                                <option>O. Creative and Strategic Services Fringe</option>
+                            </optgroup>
+                            <optgroup label="Creative and Strategic Services Expenses">
+                                <option>P. Airfare</option>
+                                <option>P. Hotel</option>
+                                <option>P. Per Diems</option>
+                                <option>P. Taxi & Rideshare</option>
+                                <option>P. Car Rental</option>
+                                <option>P. Catering</option>
+                                <option>P. Fabrication</option>
+                                <option>P. Furniture and Decor</option>
+                                <option>P. Signage and Print</option>
+                                <option>P. Shipping and Postage</option>
+                            </optgroup>
+                            <optgroup label="Account and Project Management">
+                                <option>Q. Account Manager</option>
+                                <option>Q. Account Director</option>
+                                <option>Q. Project Manager</option>
+                                <option>Q. Project Manager - Senior</option>
+                                <option>Q. Supervising Project Manager</option>
+                            </optgroup>
+                            <optgroup label="Account and Project Management Expenses">
+                                <option>R. Airfare</option>
+                                <option>R. Hotel</option>
+                                <option>R. Per Diems</option>
+                                <option>R. Taxi & Rideshare</option>
+                                <option>R. Car Rental</option>
+                            </optgroup>
                         </select>
                     </td>
                     <td class="table-cell">
@@ -953,9 +1111,11 @@
 
                 const quantityInput = row.querySelector('.quantity');
                 const rateInput = row.querySelector('.rate');
+                const serviceSelect = row.querySelector('.service-item');
                 
                 quantityInput.addEventListener('input', calculateTotals);
                 rateInput.addEventListener('input', calculateTotals);
+                serviceSelect.addEventListener('change', calculateTotals);
 
                 itemsContainer.appendChild(row);
                 calculateTotals();
@@ -1083,7 +1243,7 @@
             // Event Listeners
             addItemBtn.addEventListener('click', () => createItemRow());
             submitBtn.addEventListener('click', handleSubmit);
-            printBtn.addEventListener('click', () => window.print());
+            downloadPdfBtn.addEventListener('click', () => window.print());
             taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
