@@ -355,6 +355,7 @@
             align-items: center;
         }
 
+        /* Enhanced action button styles with tooltip support */
         .action-btn {
             display: inline-flex;
             align-items: center;
@@ -369,6 +370,52 @@
             min-width: 24px;
             height: 24px;
             outline: none;
+            position: relative; /* For tooltip positioning */
+        }
+
+        /* Tooltip styles */
+        .action-btn::after {
+            content: attr(title);
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(-5px);
+            background: var(--color-gray-800);
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            white-space: nowrap;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 1000;
+        }
+
+        /* Tooltip arrow */
+        .action-btn::before {
+            content: '';
+            position: absolute;
+            bottom: 100%;
+            left: 50%;
+            transform: translateX(-50%) translateY(1px);
+            border: 5px solid transparent;
+            border-top-color: var(--color-gray-800);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            z-index: 1000;
+        }
+
+        /* Show tooltip on hover */
+        .action-btn:hover::after {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-8px);
+        }
+
+        .action-btn:hover::before {
+            opacity: 1;
+            transform: translateX(-50%) translateY(-2px);
         }
 
         .duplicate-btn {
@@ -1079,8 +1126,8 @@
                     <td class="table-cell amount-cell">$0.00</td>
                     <td class="table-cell no-print">
                         <div class="action-buttons">
-                            <button type="button" class="action-btn remove-btn remove-item-btn" title="Remove item">×</button>
-                            <button type="button" class="action-btn duplicate-btn duplicate-item-btn" title="Duplicate item">⧉</button>
+                            <button type="button" class="action-btn remove-btn remove-item-btn" title="Delete">×</button>
+                            <button type="button" class="action-btn duplicate-btn duplicate-item-btn" title="Duplicate">⧉</button>
                         </div>
                     </td>
                 `;
