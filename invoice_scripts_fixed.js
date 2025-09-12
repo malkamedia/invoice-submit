@@ -298,7 +298,15 @@ document.addEventListener('DOMContentLoaded', () => {
         const openDropdown = () => {
             if (!isOpen) {
                 isOpen = true;
+                
+                // FIXED: Position dropdown using fixed positioning to avoid clipping
+                const inputRect = input.getBoundingClientRect();
+                dropdown.style.position = 'fixed';
+                dropdown.style.top = `${inputRect.bottom}px`;
+                dropdown.style.left = `${inputRect.left}px`;
+                dropdown.style.width = `${inputRect.width}px`;
                 dropdown.style.display = 'block';
+                
                 renderOptions(input.value);
                 
                 // Close other dropdowns
