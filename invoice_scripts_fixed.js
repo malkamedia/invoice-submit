@@ -1,4 +1,4 @@
-// Invoice Form JavaScript - Fixed Dropdown Implementation with Z-Index Fix
+// Invoice Form JavaScript - FIXED: Complete Dropdown Implementation
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const itemsContainer = document.getElementById('invoice-items');
@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // Configuration
     const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 
-    // Dropdown options - FIXED: Properly structured objects
+    // FIXED: Complete dropdown options with proper structure
     const costCenterOptions = [
         { value: '40677', text: '40677 - ML Malka Post Production' },
         { value: '40382', text: '40382 - ML Malka Production' },
@@ -33,7 +33,7 @@ document.addEventListener('DOMContentLoaded', () => {
         { value: 'Net 60', text: 'Net 60' }
     ];
 
-    // Service options array - hardcoded for reliability
+    // FIXED: Complete service options array (unchanged from original)
     const serviceOptions = [
         // Pre-Production Labor
         'A. Audio Mixer', 'A. Cam Operator', 'A. Director', 'A. Producer',
@@ -164,198 +164,142 @@ document.addEventListener('DOMContentLoaded', () => {
         if (serviceEndEl) serviceEndEl.value = isoDate;
     };
 
-    // FIXED: Generic searchable dropdown creator with proper object handling and z-index
+    // FIXED: Completely rewritten custom dropdown creator with proper event handling
     const createCustomDropdown = (container, options, placeholder, hiddenInputId, defaultValue = null) => {
+        // Clear container first
+        container.innerHTML = '';
+        
         const wrapper = document.createElement('div');
         wrapper.className = 'searchable-dropdown';
-        wrapper.style.cssText = `
-            position: relative;
-            width: 100%;
-            z-index: 100;
-        `;
         
         const input = document.createElement('input');
         input.type = 'text';
         input.placeholder = placeholder;
         input.className = 'form-input';
-        input.style.cssText = `
-            width: 100%;
-            position: relative;
-            z-index: 101;
-        `;
+        input.autocomplete = 'off'; // Prevent browser autocomplete interference
         
         const dropdown = document.createElement('div');
         dropdown.className = 'dropdown-list';
-        dropdown.style.cssText = `
-            position: absolute;
-            top: 100%;
-            left: 0;
-            right: 0;
-            max-height: 200px;
-            overflow-y: auto;
-            background: white;
-            border: 1px solid #d1d5db;
-            border-top: none;
-            border-radius: 0 0 6px 6px;
-            z-index: 10000;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
-            display: none;
-        `;
         
         let selectedValue = '';
         let isOpen = false;
+        let currentIndex = -1; // For keyboard navigation
         
-        // FIXED: Proper filtering function that handles both arrays and objects
-        const filterOptions = (searchTerm) => {
+        // FIXED: Proper option filtering and rendering
+        const renderOptions = (searchTerm = '') => {
             dropdown.innerHTML = '';
+            currentIndex = -1;
             
             let filteredOptions;
-            
-            // Check if options is an array of objects with text/value properties
             const isObjectArray = options.length > 0 && typeof options[0] === 'object' && options[0].hasOwnProperty('text');
             
             if (isObjectArray) {
                 // Handle object arrays (cost center, payment terms)
-                if (!searchTerm.trim()) {
-                    filteredOptions = options;
-                } else {
-                    filteredOptions = options.filter(option => 
+                filteredOptions = searchTerm.trim() === '' 
+                    ? options 
+                    : options.filter(option => 
                         option.text.toLowerCase().includes(searchTerm.toLowerCase())
                     );
-                }
-                
-                if (filteredOptions.length === 0) {
-                    const noResultsDiv = document.createElement('div');
-                    noResultsDiv.style.cssText = `
-                        padding: 8px;
-                        font-style: italic;
-                        color: #6b7280;
-                        cursor: default;
-                    `;
-                    noResultsDiv.textContent = 'No options found';
-                    dropdown.appendChild(noResultsDiv);
-                } else {
-                    filteredOptions.forEach(option => {
-                        const div = document.createElement('div');
-                        div.style.cssText = `
-                            padding: 8px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            color: #1f2937;
-                            transition: background-color 0.15s ease;
-                            line-height: 1.2;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        `;
-                        
-                        div.textContent = option.text; // Use the text property
-                        
-                        div.addEventListener('mouseenter', () => {
-                            div.style.backgroundColor = '#2563eb';
-                            div.style.color = 'white';
-                        });
-                        
-                        div.addEventListener('mouseleave', () => {
-                            div.style.backgroundColor = 'white';
-                            div.style.color = '#1f2937';
-                        });
-                        
-                        div.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            input.value = option.text;
-                            selectedValue = option.value;
-                            input.dataset.selectedValue = option.value;
-                            if (hiddenInputId) {
-                                document.getElementById(hiddenInputId).value = option.value;
-                            }
-                            closeDropdown();
-                        });
-                        
-                        dropdown.appendChild(div);
-                    });
-                }
             } else {
-                // Handle simple string arrays (services)
-                if (!searchTerm.trim()) {
-                    filteredOptions = options.slice(0, 15);
-                } else {
-                    filteredOptions = options.filter(option => 
+                // Handle string arrays (services)
+                filteredOptions = searchTerm.trim() === ''
+                    ? options.slice(0, 20) // Show first 20 by default
+                    : options.filter(option => 
                         option.toLowerCase().includes(searchTerm.toLowerCase())
-                    );
+                    ).slice(0, 20); // Limit filtered results
+            }
+            
+            if (filteredOptions.length === 0) {
+                const noResultsDiv = document.createElement('div');
+                noResultsDiv.className = 'dropdown-item';
+                noResultsDiv.style.fontStyle = 'italic';
+                noResultsDiv.style.color = '#6b7280';
+                noResultsDiv.style.cursor = 'default';
+                noResultsDiv.textContent = 'No options found';
+                dropdown.appendChild(noResultsDiv);
+                return;
+            }
+            
+            filteredOptions.forEach((option, index) => {
+                const div = document.createElement('div');
+                div.className = 'dropdown-item';
+                div.dataset.index = index;
+                
+                if (isObjectArray) {
+                    div.textContent = option.text;
+                    div.dataset.value = option.value;
+                } else {
+                    div.textContent = option;
+                    div.dataset.value = option;
                 }
                 
-                if (filteredOptions.length === 0) {
-                    const noResultsDiv = document.createElement('div');
-                    noResultsDiv.style.cssText = `
-                        padding: 8px;
-                        font-style: italic;
-                        color: #6b7280;
-                        cursor: default;
-                    `;
-                    noResultsDiv.textContent = 'No services found';
-                    dropdown.appendChild(noResultsDiv);
-                } else {
-                    filteredOptions.slice(0, 20).forEach(option => {
-                        const div = document.createElement('div');
-                        div.style.cssText = `
-                            padding: 8px;
-                            cursor: pointer;
-                            font-size: 14px;
-                            color: #1f2937;
-                            transition: background-color 0.15s ease;
-                            line-height: 1.2;
-                            white-space: nowrap;
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-                        `;
-                        div.textContent = option;
-                        
-                        div.addEventListener('mouseenter', () => {
-                            div.style.backgroundColor = '#2563eb';
-                            div.style.color = 'white';
-                        });
-                        
-                        div.addEventListener('mouseleave', () => {
-                            div.style.backgroundColor = 'white';
-                            div.style.color = '#1f2937';
-                        });
-                        
-                        div.addEventListener('click', (e) => {
-                            e.stopPropagation();
-                            input.value = option;
-                            selectedValue = option;
-                            input.dataset.selectedValue = option;
-                            if (hiddenInputId) {
-                                document.getElementById(hiddenInputId).value = option;
-                            }
-                            closeDropdown();
-                            calculateTotals();
-                        });
-                        
-                        dropdown.appendChild(div);
+                // FIXED: Proper event handling with mousedown to prevent blur
+                div.addEventListener('mousedown', (e) => {
+                    e.preventDefault(); // Prevent input blur
+                    e.stopPropagation();
+                    selectOption(option);
+                });
+                
+                div.addEventListener('mouseenter', () => {
+                    // Clear other highlights
+                    dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                        item.style.backgroundColor = '';
+                        item.style.color = '';
                     });
-                    
-                    if (filteredOptions.length > 20) {
-                        const moreDiv = document.createElement('div');
-                        moreDiv.style.cssText = `
-                            padding: 8px;
-                            font-style: italic;
-                            color: #6b7280;
-                            cursor: default;
-                        `;
-                        moreDiv.textContent = `... and ${filteredOptions.length - 20} more results`;
-                        dropdown.appendChild(moreDiv);
-                    }
+                    // Highlight current
+                    div.style.backgroundColor = '#2563eb';
+                    div.style.color = 'white';
+                    currentIndex = index;
+                });
+                
+                div.addEventListener('mouseleave', () => {
+                    div.style.backgroundColor = '';
+                    div.style.color = '';
+                });
+                
+                dropdown.appendChild(div);
+            });
+            
+            // Show more results indicator for services
+            if (!isObjectArray && options.length > 20 && searchTerm.trim() === '') {
+                const moreDiv = document.createElement('div');
+                moreDiv.className = 'dropdown-item';
+                moreDiv.style.fontStyle = 'italic';
+                moreDiv.style.color = '#6b7280';
+                moreDiv.style.cursor = 'default';
+                moreDiv.textContent = `... and ${options.length - 20} more. Type to search.`;
+                dropdown.appendChild(moreDiv);
+            }
+        };
+        
+        const selectOption = (option) => {
+            const isObjectArray = typeof option === 'object' && option.hasOwnProperty('text');
+            
+            if (isObjectArray) {
+                input.value = option.text;
+                selectedValue = option.value;
+            } else {
+                input.value = option;
+                selectedValue = option;
+            }
+            
+            // Update hidden input if provided
+            if (hiddenInputId) {
+                const hiddenInput = document.getElementById(hiddenInputId);
+                if (hiddenInput) {
+                    hiddenInput.value = selectedValue;
                 }
             }
+            
+            closeDropdown();
+            calculateTotals(); // Recalculate if needed
         };
         
         const openDropdown = () => {
             if (!isOpen) {
                 isOpen = true;
                 dropdown.style.display = 'block';
-                filterOptions(input.value);
+                renderOptions(input.value);
                 
                 // Close other dropdowns
                 document.querySelectorAll('.dropdown-list').forEach(otherDropdown => {
@@ -369,31 +313,81 @@ document.addEventListener('DOMContentLoaded', () => {
         const closeDropdown = () => {
             isOpen = false;
             dropdown.style.display = 'none';
+            currentIndex = -1;
         };
         
-        // Event listeners
+        // FIXED: Proper event listeners
         input.addEventListener('input', (e) => {
-            if (!isOpen) openDropdown();
-            filterOptions(e.target.value);
+            openDropdown();
+            renderOptions(e.target.value);
             
-            if (e.target.value !== selectedValue) {
+            // Clear selection if input doesn't match
+            if (e.target.value !== (typeof selectedValue === 'object' ? selectedValue.text : selectedValue)) {
                 selectedValue = '';
-                input.dataset.selectedValue = '';
                 if (hiddenInputId) {
-                    document.getElementById(hiddenInputId).value = '';
+                    const hiddenInput = document.getElementById(hiddenInputId);
+                    if (hiddenInput) hiddenInput.value = '';
                 }
             }
         });
         
-        input.addEventListener('focus', openDropdown);
+        input.addEventListener('focus', () => {
+            openDropdown();
+        });
         
+        // FIXED: Use timeout to allow click events to fire before blur
         input.addEventListener('blur', () => {
-            setTimeout(closeDropdown, 150);
+            setTimeout(() => {
+                closeDropdown();
+            }, 150);
         });
         
-        dropdown.addEventListener('mousedown', (e) => {
-            e.preventDefault();
+        // FIXED: Keyboard navigation
+        input.addEventListener('keydown', (e) => {
+            if (!isOpen) return;
+            
+            const items = dropdown.querySelectorAll('.dropdown-item:not([style*="cursor: default"])');
+            
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                currentIndex = Math.min(currentIndex + 1, items.length - 1);
+                highlightItem(items, currentIndex);
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                currentIndex = Math.max(currentIndex - 1, -1);
+                highlightItem(items, currentIndex);
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                if (currentIndex >= 0 && items[currentIndex]) {
+                    const value = items[currentIndex].dataset.value;
+                    const isObjectArray = options.length > 0 && typeof options[0] === 'object';
+                    
+                    if (isObjectArray) {
+                        const option = options.find(opt => opt.value === value);
+                        if (option) selectOption(option);
+                    } else {
+                        selectOption(value);
+                    }
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                closeDropdown();
+                input.blur();
+            }
         });
+        
+        const highlightItem = (items, index) => {
+            items.forEach((item, i) => {
+                if (i === index) {
+                    item.style.backgroundColor = '#2563eb';
+                    item.style.color = 'white';
+                    item.scrollIntoView({ block: 'nearest' });
+                } else {
+                    item.style.backgroundColor = '';
+                    item.style.color = '';
+                }
+            });
+        };
         
         // Set default value if provided
         if (defaultValue) {
@@ -402,22 +396,12 @@ document.addEventListener('DOMContentLoaded', () => {
             if (isObjectArray) {
                 const defaultOption = options.find(opt => opt.value === defaultValue);
                 if (defaultOption) {
-                    input.value = defaultOption.text;
-                    selectedValue = defaultOption.value;
-                    input.dataset.selectedValue = defaultOption.value;
-                    if (hiddenInputId) {
-                        document.getElementById(hiddenInputId).value = defaultOption.value;
-                    }
+                    selectOption(defaultOption);
                 }
             } else {
                 const defaultOption = options.find(opt => opt === defaultValue);
                 if (defaultOption) {
-                    input.value = defaultOption;
-                    selectedValue = defaultOption;
-                    input.dataset.selectedValue = defaultOption;
-                    if (hiddenInputId) {
-                        document.getElementById(hiddenInputId).value = defaultOption;
-                    }
+                    selectOption(defaultOption);
                 }
             }
         }
@@ -429,11 +413,6 @@ document.addEventListener('DOMContentLoaded', () => {
         return input;
     };
 
-    // Create searchable dropdown for services (table rows)
-    const createServiceDropdown = (container) => {
-        return createCustomDropdown(container, serviceOptions, 'Type to search services...', null);
-    };
-
     // Create new item row
     const createItemRow = () => {
         const row = document.createElement('tr');
@@ -442,7 +421,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Service/Item cell
         const serviceCell = document.createElement('td');
         serviceCell.className = 'table-cell';
-        const serviceInput = createServiceDropdown(serviceCell);
+        const serviceInput = createCustomDropdown(serviceCell, serviceOptions, 'Type to search services...', null);
         
         // Job Code cell
         const jobCodeCell = document.createElement('td');
@@ -481,7 +460,7 @@ document.addEventListener('DOMContentLoaded', () => {
         row.appendChild(amountCell);
         row.appendChild(actionsCell);
         
-        // Add event listeners
+        // Add event listeners for calculations
         const jobCodeInput = row.querySelector('.job-code');
         jobCodeInput.addEventListener('input', (e) => {
             e.target.value = e.target.value.replace(/[^0-9]/g, '');
@@ -533,12 +512,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Show status message
     const showStatusMessage = (message, type = 'info') => {
-        statusMessage.textContent = message;
-        statusMessage.className = `status-message status-${type} show`;
-        
-        setTimeout(() => {
-            statusMessage.classList.remove('show');
-        }, 5000);
+        if (statusMessage) {
+            statusMessage.textContent = message;
+            statusMessage.className = `status-message status-${type} show`;
+            
+            setTimeout(() => {
+                statusMessage.classList.remove('show');
+            }, 5000);
+        }
     };
 
     // Form validation
@@ -561,7 +542,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
 
         const validItems = Array.from(document.querySelectorAll('.searchable-dropdown input'))
-            .filter(input => input.dataset.selectedValue && input.closest('#invoice-items'));
+            .filter(input => input.value.trim() && input.closest('#invoice-items'));
         
         if (validItems.length === 0) {
             errors.push('Please add at least one invoice item with a selected service');
@@ -575,10 +556,10 @@ document.addEventListener('DOMContentLoaded', () => {
         return isValid;
     };
 
-    // Generate PDF function (simplified for space)
+    // Generate PDF function
     const generatePDF = async () => {
         if (!validateForm()) return;
-        showStatusMessage('PDF generation feature requires jsPDF library setup', 'info');
+        showStatusMessage('PDF generation feature requires additional setup', 'info');
     };
 
     // Submit to Google Sheets
@@ -616,7 +597,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             document.querySelectorAll('.table-row').forEach(row => {
                 const serviceInput = row.querySelector('.searchable-dropdown input');
-                const serviceItem = serviceInput.dataset.selectedValue || serviceInput.value;
+                const serviceItem = serviceInput.value.trim();
                 const jobCode = row.querySelector('.job-code').value;
                 const hours = row.querySelector('.quantity').value;
                 const rate = row.querySelector('.rate').value;
@@ -637,6 +618,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 throw new Error('Please configure your Google Apps Script URL');
             }
 
+            // Simulate successful submission for now
             showStatusMessage('Data submitted successfully!', 'success');
             
         } catch (error) {
@@ -647,6 +629,15 @@ document.addEventListener('DOMContentLoaded', () => {
             submitBtn.textContent = 'Submit to Spreadsheet';
         }
     };
+
+    // FIXED: Global click handler to close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.searchable-dropdown')) {
+            document.querySelectorAll('.dropdown-list').forEach(dropdown => {
+                dropdown.style.display = 'none';
+            });
+        }
+    });
 
     // Event Listeners
     addItemBtn.addEventListener('click', createItemRow);
@@ -664,25 +655,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 createItemRow();
             }
         } else if (e.target.classList.contains('duplicate-item-btn')) {
-            const originalRow = e.target.closest('.table-row');
-            // Simplified duplicate - just create new row
-            createItemRow();
-        }
-    });
-
-    // Close dropdowns when clicking outside
-    document.addEventListener('click', (e) => {
-        if (!e.target.closest('.searchable-dropdown')) {
-            document.querySelectorAll('.dropdown-list').forEach(dropdown => {
-                dropdown.style.display = 'none';
-            });
+            createItemRow(); // Simplified for now
         }
     });
 
     // Initialize the form
     initializeDates();
     
-    // Create custom dropdowns
+    // Create custom dropdowns for form fields
     createCustomDropdown(
         document.getElementById('cost-center-dropdown'), 
         costCenterOptions, 
@@ -698,6 +678,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'Net 30'
     );
     
+    // Create initial item row
     createItemRow();
     calculateTotals();
 
