@@ -55,9 +55,10 @@
                     </div>
                     
                     <!-- Cost Center -->
-                    <div class="cost-center-field">
-                        <label for="cost-center" class="detail-label required-field">Cost Center:</label>
-                        <select id="cost-center" class="form-select" required>
+                <div class="cost-center-field">
+                    <label for="cost-center" class="detail-label required-field">Cost Center:</label>
+                    <div class="custom-select-wrapper">
+                        <select id="cost-center" class="custom-select" required>
                             <option value="" disabled selected>Select Cost Center...</option>
                             <option value="40677">40677 - ML Malka Post Production</option>
                             <option value="40382">40382 - ML Malka Production</option>
@@ -85,13 +86,15 @@
                     </div>
                     <div class="detail-row">
                         <label for="pay-terms" class="detail-label required-field">Payment Terms:</label>
-                        <select id="pay-terms" class="form-select detail-input" required>
-                            <option>Due on Receipt</option>
-                            <option>Net 15</option>
-                            <option selected>Net 30</option>
-                            <option>Net 45</option>
-                            <option>Net 60</option>
-                        </select>
+                        <div class="custom-select-wrapper">
+                            <select id="pay-terms" class="custom-select detail-input" required>
+                                <option>Due on Receipt</option>
+                                <option>Net 15</option>
+                                <option selected>Net 30</option>
+                                <option>Net 45</option>
+                                <option>Net 60</option>
+                            </select>
+                        </div>
                     </div>
                     <div class="detail-row">
                         <label for="po-number" class="detail-label">PO# (Optional):</label>
