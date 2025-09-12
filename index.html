@@ -1163,7 +1163,7 @@
                 createItemRow(data);
             };
 
-            // Generate PDF using jsPDF and html2canvas
+            // Generate PDF using native jsPDF text rendering
             const generatePDF = async () => {
                 try {
                     showStatusMessage('Generating PDF...', 'info');
@@ -1175,55 +1175,212 @@
                         throw new Error('PDF library not loaded. Please refresh the page and try again.');
                     }
 
-                    // Hide elements that shouldn't be in PDF
-                    const elementsToHide = document.querySelectorAll('.no-print');
-                    elementsToHide.forEach(el => el.style.display = 'none');
-
-                    // Use html2canvas to capture the invoice
-                    const canvas = await html2canvas(document.getElementById('invoice-form'), {
-                        scale: 2,
-                        useCORS: true,
-                        logging: false,
-                        windowWidth: document.getElementById('invoice-form').scrollWidth,
-                        windowHeight: document.getElementById('invoice-form').scrollHeight
-                    });
-
-                    // Restore hidden elements
-                    elementsToHide.forEach(el => el.style.display = '');
-
-                    // Create PDF
                     const { jsPDF } = window.jspdf;
-                    const imgData = canvas.toDataURL('image/png');
-                    
-                    // Calculate dimensions
-                    const imgWidth = 210; // A4 width in mm
-                    const pageHeight = 297; // A4 height in mm
-                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
-                    let heightLeft = imgHeight;
-
                     const pdf = new jsPDF('p', 'mm', 'a4');
-                    let position = 0;
+                    
+                    // Set up dimensions
+                    const pageWidth = 210;
+                    const pageHeight = 297;
+                    const margin = 20;
+                    const contentWidth = pageWidth - (margin * 2);
+                    let yPosition = margin;
+                    
+                    // Helper function for text with word wrapping
+                    const addText = (text, x, y, fontSize = 10, style = 'normal') => {
+                        pdf.setFontSize(fontSize);
+                        pdf.setFont('helvetica', style);
+                        const lines = pdf.splitTextToSize(text, contentWidth - x + margin);
+                        pdf.text(lines, x, y);
+                        return y + (lines.length * fontSize * 0.4);
+                    };
+                    
+                    // Helper function to check page breaks
+                    const checkPageBreak = (neededHeight) => {
+                        if (yPosition + neededHeight > pageHeight - margin) {
+                            pdf.addPage();
+                            yPosition = margin;
+                        }
+                    };
 
-                    // Add first page
-                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                    heightLeft -= pageHeight;
+                    // Title
+                    pdf.setFontSize(24);
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('INVOICE', margin, yPosition);
+                    yPosition += 10;
+                    
+                    pdf.setFontSize(10);
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text('Professional Services Invoice', margin, yPosition);
+                    yPosition += 15;
 
-                    // Add additional pages if needed
-                    while (heightLeft >= 0) {
-                        position = heightLeft - imgHeight;
-                        pdf.addPage();
-                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-                        heightLeft -= pageHeight;
+                    // Vendor and Client Info
+                    const leftCol = margin;
+                    const rightCol = pageWidth / 2 + 10;
+                    
+                    // Vendor Info
+                    let leftY = yPosition;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Vendor Information:', leftCol, leftY);
+                    leftY += 6;
+                    pdf.setFont('helvetica', 'normal');
+                    
+                    const vendorName = document.getElementById('vendor-name').value || 'N/A';
+                    const vendorAddress = document.getElementById('vendor-address').value || 'N/A';
+                    const vendorCity = document.getElementById('vendor-city').value || 'N/A';
+                    const vendorEmail = document.getElementById('vendor-email').value || 'N/A';
+                    
+                    leftY = addText(vendorName, leftCol, leftY);
+                    leftY = addText(vendorAddress, leftCol, leftY);
+                    leftY = addText(vendorCity, leftCol, leftY);
+                    leftY = addText(vendorEmail, leftCol, leftY);
+
+                    // Invoice Details
+                    let rightY = yPosition;
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Invoice Details:', rightCol, rightY);
+                    rightY += 6;
+                    pdf.setFont('helvetica', 'normal');
+                    
+                    const invoiceNum = document.getElementById('invoice-number').value || 'N/A';
+                    const invoiceDate = document.getElementById('invoice-date').value || 'N/A';
+                    const payTerms = document.getElementById('pay-terms').value || 'N/A';
+                    const poNumber = document.getElementById('po-number').value || '';
+                    
+                    rightY = addText(`Invoice #: ${invoiceNum}`, rightCol, rightY);
+                    rightY = addText(`Date: ${invoiceDate}`, rightCol, rightY);
+                    rightY = addText(`Terms: ${payTerms}`, rightCol, rightY);
+                    if (poNumber) rightY = addText(`PO#: ${poNumber}`, rightCol, rightY);
+
+                    yPosition = Math.max(leftY, rightY) + 10;
+
+                    // Bill To and Cost Center
+                    checkPageBreak(30);
+                    
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Bill To:', leftCol, yPosition);
+                    pdf.text('Cost Center:', rightCol, yPosition);
+                    yPosition += 6;
+                    pdf.setFont('helvetica', 'normal');
+                    
+                    const clientName = document.getElementById('client-name').value || 'N/A';
+                    const hiringManager = document.getElementById('hiring-manager').value || 'N/A';
+                    const hiringEmail = document.getElementById('hiring-manager-email').value || 'N/A';
+                    const costCenter = document.getElementById('cost-center').value || 'N/A';
+                    
+                    leftY = yPosition;
+                    leftY = addText(clientName, leftCol, leftY);
+                    leftY = addText(hiringManager, leftCol, leftY);
+                    leftY = addText(hiringEmail, leftCol, leftY);
+                    
+                    rightY = yPosition;
+                    const costCenterText = document.getElementById('cost-center').selectedOptions[0]?.text || costCenter;
+                    rightY = addText(costCenterText, rightCol, rightY);
+                    
+                    yPosition = Math.max(leftY, rightY) + 10;
+
+                    // Service Period
+                    checkPageBreak(20);
+                    
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Service Period:', margin, yPosition);
+                    yPosition += 6;
+                    pdf.setFont('helvetica', 'normal');
+                    
+                    const serviceStart = document.getElementById('service-start').value || 'N/A';
+                    const serviceEnd = document.getElementById('service-end').value || 'N/A';
+                    yPosition = addText(`${serviceStart} to ${serviceEnd}`, margin, yPosition);
+                    yPosition += 10;
+
+                    // Invoice Items Table
+                    checkPageBreak(40);
+                    
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Invoice Items:', margin, yPosition);
+                    yPosition += 8;
+
+                    // Table headers
+                    const colWidths = [70, 25, 20, 20, 25];
+                    const colPositions = [margin];
+                    for (let i = 1; i < colWidths.length; i++) {
+                        colPositions[i] = colPositions[i-1] + colWidths[i-1];
                     }
 
-                    // Generate filename
-                    const vendorName = document.getElementById('vendor-name').value || 'Invoice';
-                    const invoiceNum = document.getElementById('invoice-number').value || 'INV-001';
-                    const invoiceDate = document.getElementById('invoice-date').value || new Date().toISOString().split('T')[0];
+                    // Draw table header
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.setFontSize(9);
+                    pdf.text('Service/Item', colPositions[0], yPosition);
+                    pdf.text('Job Code', colPositions[1], yPosition);
+                    pdf.text('Hours', colPositions[2], yPosition);
+                    pdf.text('Rate', colPositions[3], yPosition);
+                    pdf.text('Amount', colPositions[4], yPosition);
+                    yPosition += 6;
+
+                    // Draw header line
+                    pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
+                    yPosition += 2;
+
+                    // Table rows
+                    pdf.setFont('helvetica', 'normal');
+                    let subtotal = 0;
                     
-                    const cleanName = vendorName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
-                    const cleanNum = invoiceNum.replace(/[^a-zA-Z0-9]/g, '_');
-                    const filename = `${cleanName}_${cleanNum}_${invoiceDate}.pdf`;
+                    document.querySelectorAll('.table-row').forEach(row => {
+                        checkPageBreak(15);
+                        
+                        const service = row.querySelector('.service-item').value || 'N/A';
+                        const jobCode = row.querySelector('.job-code').value || '';
+                        const hours = row.querySelector('.quantity').value || '0';
+                        const rate = row.querySelector('.rate').value || '0';
+                        const amount = parseFloat(hours) * parseFloat(rate);
+                        subtotal += amount;
+
+                        // Truncate service name if too long
+                        const serviceName = service.length > 40 ? service.substring(0, 40) + '...' : service;
+                        
+                        pdf.text(serviceName, colPositions[0], yPosition);
+                        pdf.text(jobCode, colPositions[1], yPosition);
+                        pdf.text(hours, colPositions[2], yPosition);
+                        pdf.text(`${parseFloat(rate).toFixed(2)}`, colPositions[3], yPosition);
+                        pdf.text(`${amount.toFixed(2)}`, colPositions[4], yPosition);
+                        yPosition += 6;
+                    });
+
+                    yPosition += 10;
+
+                    // Totals
+                    checkPageBreak(25);
+                    
+                    const taxRate = parseFloat(document.getElementById('tax-rate').value) || 0;
+                    const taxAmount = subtotal * (taxRate / 100);
+                    const grandTotal = subtotal + taxAmount;
+
+                    const totalsX = pageWidth - margin - 60;
+                    pdf.setFont('helvetica', 'normal');
+                    pdf.text('Subtotal:', totalsX, yPosition);
+                    pdf.text(`${subtotal.toFixed(2)}`, totalsX + 35, yPosition);
+                    yPosition += 6;
+
+                    if (taxRate > 0) {
+                        pdf.text(`Tax (${taxRate}%):`, totalsX, yPosition);
+                        pdf.text(`${taxAmount.toFixed(2)}`, totalsX + 35, yPosition);
+                        yPosition += 6;
+                    }
+
+                    pdf.line(totalsX, yPosition - 2, pageWidth - margin, yPosition - 2);
+                    yPosition += 4;
+
+                    pdf.setFont('helvetica', 'bold');
+                    pdf.text('Total:', totalsX, yPosition);
+                    pdf.text(`${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
+
+                    // Generate filename
+                    const vendorNameClean = vendorName
+                        .replace(/[^a-zA-Z0-9\s]/g, '')
+                        .replace(/\s+/g, '_')
+                        .substring(0, 20) || 'Invoice';
+                    const invoiceNumberClean = invoiceNum.replace(/[^a-zA-Z0-9]/g, '_') || 'INV-001';
+                    const invoiceDateClean = invoiceDate || new Date().toISOString().split('T')[0];
+                    
+                    const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
 
                     // Save the PDF
                     pdf.save(filename);
