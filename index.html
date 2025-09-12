@@ -1483,14 +1483,14 @@
                         });
                     }
                 });
-
+/*
                 if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwcj9X6SiFArXfezuds6fh_U2hVXMh09YcrYhNCuZ1KyLLwWdQNmTYGxLT6Uv4m95QQ_A/exec') {
                     showStatusMessage('Please configure your Google Apps Script URL', 'error');
                     submitBtn.disabled = false;
                     submitBtn.textContent = '📤 Submit to Spreadsheet';
                     return;
                 }
-
+*/
                 try {
                     const response = await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
