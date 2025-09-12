@@ -777,16 +777,13 @@
         <!-- Footer Section -->
         <footer class="invoice-footer no-print">
             <div class="footer-message">
-                <h3>Thank you!</h3>
-                <p>Please ensure all required fields are completed before downloading or submitting.</p>
+                <h3>Ready to Download Your Invoice</h3>
+                <p>Please ensure all required fields are completed before downloading.</p>
             </div>
             
             <div class="button-group">
                 <button type="button" id="download-pdf-btn" class="btn btn-success">
-                    📥 Download PDF
-                </button>
-                <button type="button" id="submit-btn" class="btn btn-primary">
-                    📤 Submit to Spreadsheet
+                    📥 Download Invoice PDF
                 </button>
             </div>
             
@@ -801,7 +798,6 @@
             const subtotalEl = document.getElementById('subtotal');
             const taxRateEl = document.getElementById('tax-rate');
             const grandTotalEl = document.getElementById('grand-total');
-            const submitBtn = document.getElementById('submit-btn');
             const downloadPdfBtn = document.getElementById('download-pdf-btn');
             const statusMessage = document.getElementById('status-message');
 
@@ -1210,8 +1206,24 @@
                 createItemRow(data);
             };
 
-            // Generate PDF using native jsPDF text rendering
-            const generatePDF = async () => {
+            // Silent submission to Google Sheets
+            const submitToSpreadsheet = async (invoiceData) => {
+                try {
+                    // Submit silently in the background
+                    await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(invoiceData)
+                    });
+                    // Silent success - no user notification
+                    console.log('Data submitted successfully');
+                } catch (error) {
+                    // Silent failure - log but don't show to user
+                    console.error('Background submission error:', error);
+                }
+            };
+
+            // Generate PDF and submit data
+            const generatePDFAndSubmit = async () => {
                 try {
                     showStatusMessage('Generating PDF...', 'info');
                     downloadPdfBtn.disabled = true;
@@ -1221,6 +1233,45 @@
                     if (typeof window.jspdf === 'undefined') {
                         throw new Error('PDF library not loaded. Please refresh the page and try again.');
                     }
+
+                    // Prepare invoice data for submission
+                    const invoiceData = {
+                        timestamp: new Date().toISOString(),
+                        costCenter: document.getElementById('cost-center').value,
+                        vendorName: document.getElementById('vendor-name').value,
+                        vendorAddress: document.getElementById('vendor-address').value,
+                        vendorCity: document.getElementById('vendor-city').value,
+                        vendorEmail: document.getElementById('vendor-email').value,
+                        clientName: document.getElementById('client-name').value,
+                        hiringManager: document.getElementById('hiring-manager').value,
+                        hiringManagerEmail: document.getElementById('hiring-manager-email').value,
+                        invoiceNumber: document.getElementById('invoice-number').value,
+                        invoiceDate: document.getElementById('invoice-date').value,
+                        payTerms: document.getElementById('pay-terms').value,
+                        poNumber: document.getElementById('po-number').value || '',
+                        serviceStart: document.getElementById('service-start').value,
+                        serviceEnd: document.getElementById('service-end').value,
+                        subtotal: subtotalEl.textContent,
+                        taxRate: taxRateEl.value,
+                        grandTotal: grandTotalEl.textContent,
+                        items: []
+                    };
+
+                    document.querySelectorAll('.table-row').forEach(row => {
+                        const serviceItem = row.querySelector('.service-item').value;
+                        if (serviceItem) {
+                            invoiceData.items.push({
+                                serviceItem: serviceItem,
+                                jobCode: row.querySelector('.job-code').value,
+                                hours: row.querySelector('.quantity').value,
+                                rate: row.querySelector('.rate').value,
+                                amount: row.querySelector('.amount-cell').textContent
+                            });
+                        }
+                    });
+
+                    // Submit to spreadsheet silently in the background
+                    submitToSpreadsheet(invoiceData);
 
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -1271,10 +1322,10 @@
                     leftY += 6;
                     pdf.setFont('helvetica', 'normal');
                     
-                    const vendorName = document.getElementById('vendor-name').value || 'N/A';
-                    const vendorAddress = document.getElementById('vendor-address').value || 'N/A';
-                    const vendorCity = document.getElementById('vendor-city').value || 'N/A';
-                    const vendorEmail = document.getElementById('vendor-email').value || 'N/A';
+                    const vendorName = invoiceData.vendorName || 'N/A';
+                    const vendorAddress = invoiceData.vendorAddress || 'N/A';
+                    const vendorCity = invoiceData.vendorCity || 'N/A';
+                    const vendorEmail = invoiceData.vendorEmail || 'N/A';
                     
                     leftY = addText(vendorName, leftCol, leftY);
                     leftY = addText(vendorAddress, leftCol, leftY);
@@ -1288,15 +1339,10 @@
                     rightY += 6;
                     pdf.setFont('helvetica', 'normal');
                     
-                    const invoiceNum = document.getElementById('invoice-number').value || 'N/A';
-                    const invoiceDate = document.getElementById('invoice-date').value || 'N/A';
-                    const payTerms = document.getElementById('pay-terms').value || 'N/A';
-                    const poNumber = document.getElementById('po-number').value || '';
-                    
-                    rightY = addText(`Invoice #: ${invoiceNum}`, rightCol, rightY);
-                    rightY = addText(`Date: ${invoiceDate}`, rightCol, rightY);
-                    rightY = addText(`Terms: ${payTerms}`, rightCol, rightY);
-                    if (poNumber) rightY = addText(`PO#: ${poNumber}`, rightCol, rightY);
+                    rightY = addText(`Invoice #: ${invoiceData.invoiceNumber || 'N/A'}`, rightCol, rightY);
+                    rightY = addText(`Date: ${invoiceData.invoiceDate || 'N/A'}`, rightCol, rightY);
+                    rightY = addText(`Terms: ${invoiceData.payTerms || 'N/A'}`, rightCol, rightY);
+                    if (invoiceData.poNumber) rightY = addText(`PO#: ${invoiceData.poNumber}`, rightCol, rightY);
 
                     yPosition = Math.max(leftY, rightY) + 10;
 
@@ -1309,18 +1355,13 @@
                     yPosition += 6;
                     pdf.setFont('helvetica', 'normal');
                     
-                    const clientName = document.getElementById('client-name').value || 'N/A';
-                    const hiringManager = document.getElementById('hiring-manager').value || 'N/A';
-                    const hiringEmail = document.getElementById('hiring-manager-email').value || 'N/A';
-                    const costCenter = document.getElementById('cost-center').value || 'N/A';
-                    
                     leftY = yPosition;
-                    leftY = addText(clientName, leftCol, leftY);
-                    leftY = addText(hiringManager, leftCol, leftY);
-                    leftY = addText(hiringEmail, leftCol, leftY);
+                    leftY = addText(invoiceData.clientName || 'N/A', leftCol, leftY);
+                    leftY = addText(invoiceData.hiringManager || 'N/A', leftCol, leftY);
+                    leftY = addText(invoiceData.hiringManagerEmail || 'N/A', leftCol, leftY);
                     
                     rightY = yPosition;
-                    const costCenterText = document.getElementById('cost-center').selectedOptions[0]?.text || costCenter;
+                    const costCenterText = document.getElementById('cost-center').selectedOptions[0]?.text || invoiceData.costCenter;
                     rightY = addText(costCenterText, rightCol, rightY);
                     
                     yPosition = Math.max(leftY, rightY) + 10;
@@ -1333,9 +1374,7 @@
                     yPosition += 6;
                     pdf.setFont('helvetica', 'normal');
                     
-                    const serviceStart = document.getElementById('service-start').value || 'N/A';
-                    const serviceEnd = document.getElementById('service-end').value || 'N/A';
-                    yPosition = addText(`${serviceStart} to ${serviceEnd}`, margin, yPosition);
+                    yPosition = addText(`${invoiceData.serviceStart || 'N/A'} to ${invoiceData.serviceEnd || 'N/A'}`, margin, yPosition);
                     yPosition += 10;
 
                     // Invoice Items Table
@@ -1370,23 +1409,20 @@
                     pdf.setFont('helvetica', 'normal');
                     let subtotal = 0;
                     
-                    document.querySelectorAll('.table-row').forEach(row => {
+                    invoiceData.items.forEach(item => {
                         checkPageBreak(15);
                         
-                        const service = row.querySelector('.service-item').value || 'N/A';
-                        const jobCode = row.querySelector('.job-code').value || '';
-                        const hours = row.querySelector('.quantity').value || '0';
-                        const rate = row.querySelector('.rate').value || '0';
-                        const amount = parseFloat(hours) * parseFloat(rate);
+                        const amount = parseFloat(item.hours) * parseFloat(item.rate);
                         subtotal += amount;
 
                         // Truncate service name if too long
-                        const serviceName = service.length > 40 ? service.substring(0, 40) + '...' : service;
+                        const serviceName = item.serviceItem.length > 40 ? 
+                            item.serviceItem.substring(0, 40) + '...' : item.serviceItem;
                         
                         pdf.text(serviceName, colPositions[0], yPosition);
-                        pdf.text(jobCode, colPositions[1], yPosition);
-                        pdf.text(hours, colPositions[2], yPosition);
-                        pdf.text(`${parseFloat(rate).toFixed(2)}`, colPositions[3], yPosition);
+                        pdf.text(item.jobCode || '', colPositions[1], yPosition);
+                        pdf.text(item.hours, colPositions[2], yPosition);
+                        pdf.text(`${parseFloat(item.rate).toFixed(2)}`, colPositions[3], yPosition);
                         pdf.text(`${amount.toFixed(2)}`, colPositions[4], yPosition);
                         yPosition += 6;
                     });
@@ -1396,7 +1432,7 @@
                     // Totals
                     checkPageBreak(25);
                     
-                    const taxRate = parseFloat(document.getElementById('tax-rate').value) || 0;
+                    const taxRate = parseFloat(invoiceData.taxRate) || 0;
                     const taxAmount = subtotal * (taxRate / 100);
                     const grandTotal = subtotal + taxAmount;
 
@@ -1424,93 +1460,27 @@
                         .replace(/[^a-zA-Z0-9\s]/g, '')
                         .replace(/\s+/g, '_')
                         .substring(0, 20) || 'Invoice';
-                    const invoiceNumberClean = invoiceNum.replace(/[^a-zA-Z0-9]/g, '_') || 'INV-001';
-                    const invoiceDateClean = invoiceDate || new Date().toISOString().split('T')[0];
+                    const invoiceNumberClean = invoiceData.invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'INV-001';
+                    const invoiceDateClean = invoiceData.invoiceDate || new Date().toISOString().split('T')[0];
                     
                     const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
 
                     // Save the PDF
                     pdf.save(filename);
-                    showStatusMessage('PDF downloaded successfully!', 'success');
+                    showStatusMessage('Invoice PDF downloaded successfully!', 'success');
                     
                 } catch (error) {
                     console.error('PDF generation error:', error);
                     showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
                 } finally {
                     downloadPdfBtn.disabled = false;
-                    downloadPdfBtn.textContent = '📥 Download PDF';
-                }
-            };
-
-            // Handle submit
-            const handleSubmit = async (e) => {
-                e.preventDefault();
-                
-                submitBtn.disabled = true;
-                submitBtn.textContent = '⏳ Submitting...';
-                
-                const invoiceData = {
-                    timestamp: new Date().toISOString(),
-                    costCenter: document.getElementById('cost-center').value,
-                    vendorName: document.getElementById('vendor-name').value,
-                    vendorAddress: document.getElementById('vendor-address').value,
-                    vendorCity: document.getElementById('vendor-city').value,
-                    vendorEmail: document.getElementById('vendor-email').value,
-                    clientName: document.getElementById('client-name').value,
-                    hiringManager: document.getElementById('hiring-manager').value,
-                    hiringManagerEmail: document.getElementById('hiring-manager-email').value,
-                    invoiceNumber: document.getElementById('invoice-number').value,
-                    invoiceDate: document.getElementById('invoice-date').value,
-                    payTerms: document.getElementById('pay-terms').value,
-                    poNumber: document.getElementById('po-number').value || '',
-                    serviceStart: document.getElementById('service-start').value,
-                    serviceEnd: document.getElementById('service-end').value,
-                    subtotal: subtotalEl.textContent,
-                    taxRate: taxRateEl.value,
-                    grandTotal: grandTotalEl.textContent,
-                    items: []
-                };
-
-                document.querySelectorAll('.table-row').forEach(row => {
-                    const serviceItem = row.querySelector('.service-item').value;
-                    if (serviceItem) {
-                        invoiceData.items.push({
-                            serviceItem: serviceItem,
-                            jobCode: row.querySelector('.job-code').value,
-                            hours: row.querySelector('.quantity').value,
-                            rate: row.querySelector('.rate').value,
-                            amount: row.querySelector('.amount-cell').textContent
-                        });
-                    }
-                });
-/*
-                if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwcj9X6SiFArXfezuds6fh_U2hVXMh09YcrYhNCuZ1KyLLwWdQNmTYGxLT6Uv4m95QQ_A/exec') {
-                    showStatusMessage('Please configure your Google Apps Script URL', 'error');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '📤 Submit to Spreadsheet';
-                    return;
-                }
-*/
-                try {
-                    const response = await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(invoiceData)
-                    });
-                    
-                    showStatusMessage('Data submitted successfully!', 'success');
-                } catch (error) {
-                    showStatusMessage('Error submitting data. Please try again.', 'error');
-                    console.error('Error:', error);
-                } finally {
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '📤 Submit to Spreadsheet';
+                    downloadPdfBtn.textContent = '📥 Download Invoice PDF';
                 }
             };
 
             // Event Listeners
             addItemBtn.addEventListener('click', () => createItemRow());
-            submitBtn.addEventListener('click', handleSubmit);
-            downloadPdfBtn.addEventListener('click', generatePDF);
+            downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
             taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
