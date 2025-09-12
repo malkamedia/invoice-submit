@@ -1,4 +1,4 @@
-// Invoice Form JavaScript - Complete & Clean with Fixed Dropdown Positioning
+// Invoice Form JavaScript - Fixed Dropdown Implementation
 document.addEventListener('DOMContentLoaded', () => {
     // DOM Elements
     const itemsContainer = document.getElementById('invoice-items');
@@ -12,35 +12,124 @@ document.addEventListener('DOMContentLoaded', () => {
     const statusMessage = document.getElementById('status-message');
 
     // Configuration
-    const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'; // Replace with your actual URL
+    const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
 
-    // Get service options from the HTML
-    const getServiceOptions = () => {
-        const serviceOptionsDiv = document.getElementById('service-options');
-        if (!serviceOptionsDiv) {
-            console.warn('Service options not found in HTML, using fallback array');
-            return [
-                'A. Audio Mixer', 'A. Cam Operator', 'A. Director', 'A. Producer',
-                'B. Audio Mixer', 'B. Cam Operator', 'B. Director', 'B. Producer',
-                'C. Craft Services', 'C. Meals - Per Diem', 'C. Hotels',
-                'D. Location Rental', 'D. Drone Permit', 'D. Set Security',
-                'E. Prop Rental', 'E. Prop Purchase', 'E. Prop Fabrication',
-                'M. Editor', 'M. Graphic Designer', 'M. Animator (2D)',
-                'O. Art Director', 'O. Copywriter', 'O. Creative Director'
-            ];
-        }
+    // Service options array - hardcoded for reliability
+    const serviceOptions = [
+        // Pre-Production Labor
+        'A. Audio Mixer', 'A. Cam Operator', 'A. Director', 'A. Producer',
+        'A. Producer - Associate Producer', 'A. Producer - Creative Producer', 
+        'A. Producer - Executive Producer', 'A. Production Coordinator / PA',
+        'A. Production Manager', 'A. Assistant Camera', 'A. Assistant Director',
+        'A. Best Boy Electric', 'A. Gaffer', 'A. Best Boy Grip', 'A. Key Grip',
+        'A. Director of Photography', 'A. Director of Photography - Commercial',
+        'A. Director - Commercial', 'A. DIT', 'A. Hair & Makeup Artist', 'A. Jib',
+        'A. Jib Assist', 'A. Live Audio Mixer', 'A. Livestream Graphic Tech',
+        'A. Photographer', 'A. Photographer - Commercial', 'A. Producer - Field',
+        'A. Production Designer', 'A. Production Sound Engineer', 'A. Script Supervisor',
+        'A. Set Medic', 'A. Steadicam', 'A. Swing', 'A. Technical Director',
+        'A. Teleprompter Operator', 'A. VTR Operator', 'A. 2nd Assistant Camera',
+        'A. Electric', 'A. Grip', 'A. Hair and Makeup Assistant', 'A. Location Scout',
+        'A. 2nd Assistant Director', 'A. Teamsters / Driver', 'A. Pre-Production Fringe',
         
-        const options = [];
-        const optionElements = serviceOptionsDiv.querySelectorAll('option');
-        optionElements.forEach(option => {
-            if (option.textContent.trim()) {
-                options.push(option.textContent.trim());
-            }
-        });
-        return options;
-    };
-
-    const serviceOptions = getServiceOptions();
+        // Shoot Labor
+        'B. Audio Mixer', 'B. Cam Operator', 'B. Director', 'B. Producer',
+        'B. Producer - Associate Producer', 'B. Producer - Creative Producer',
+        'B. Producer - Executive Producer', 'B. Production Coordinator / PA',
+        'B. Production Manager', 'B. Assistant Camera', 'B. Assistant Director',
+        'B. Best Boy Electric', 'B. Gaffer', 'B. Best Boy Grip', 'B. Key Grip',
+        'B. Director of Photography', 'B. Director of Photography - Commercial',
+        'B. Director - Commercial', 'B. DIT', 'B. Hair & Makeup Artist', 'B. Jib',
+        'B. Jib Assist', 'B. Live Audio Mixer', 'B. Livestream Graphic Tech',
+        'B. Photographer', 'B. Photographer - Commercial', 'B. Producer - Field',
+        'B. Production Designer', 'B. Production Sound Engineer', 'B. Script Supervisor',
+        'B. Set Medic', 'B. Steadicam', 'B. Swing', 'B. Technical Director',
+        'B. Teleprompter Operator', 'B. VTR Operator', 'B. 2nd Assistant Camera',
+        'B. Electric', 'B. Grip', 'B. Hair and Makeup Assistant', 'B. Location Scout',
+        'B. 2nd Assistant Director', 'B. Teamsters / Driver', 'B. Shoot Fringe',
+        
+        // Prep & Wrap Expenses
+        'C. Craft Services', 'C. Meals - Per Diem', 'C. Hotels', 'C. Taxi & Rideshare',
+        'C. Car Rental', 'C. Casting Director',
+        
+        // Location Expenses
+        'D. Location Rental', 'D. Drone Permit', 'D. Set Security',
+        'D. Cargo Van / Production Trucking / Camera Truck', 'D. Car Rental',
+        'D. Other Vehicles', 'D. Parking/Tolls/Gas', 'D. Baggage Fees', 'D. Airfare',
+        'D. Hotel', 'D. Per Diems', 'D. Site Rep', 'D. Catering', 'D. Craft Services',
+        'D. Taxi & Rideshare', 'D. Kit Rental',
+        
+        // Props and Wardrobe
+        'E. Prop Rental', 'E. Prop Purchase', 'E. Prop Fabrication',
+        'E. Wardrobe Rental', 'E. Wardrobe Purchase',
+        
+        // Studio Costs
+        'F. Rental For Build Days', 'F. Build OT Hours', 'F. Rental for Pre-Light Days',
+        'F. Pre-Light OT Hours', 'F. Rental for Shoot Days', 'F. Shoot OT Hours',
+        'F. Rental For Strike Days', 'F. Strike OT Hours', 'F. Generator & Operator',
+        'F. Stage Manager/Studio Security', 'F. Power Charges', 'F. Misc. Studio Charges',
+        'F. Crew Parking', 'F. Condor/Scissor Lift', 'F. Steeldeck',
+        
+        // Art Department Labor
+        'G. Production Designer', 'G. Art Department Coordinator', 'G. Prop Master',
+        'G. Assistant Props', 'G. Swing', 'G. Leadperson', 'G. Set Designer',
+        'G. Set Dresser', 'G. Wardrobe Stylist', 'G. Wardrobe Assistant',
+        'G. Scenics', 'G. Grips / Riggers', 'G. Art Department Fringe',
+        
+        // Art Department Expenses
+        'H. Set Dressing Rentals', 'H. Set Dressing Purchases', 'H. Art Department Prod Supplies',
+        'H. Art Department Kit Rentals', 'H. Special Effects Rentals', 'H. Art Department Trucking',
+        'H. Outside Construction', 'H. Car Prep', 'H. Art Department Meals',
+        'H. Messengers/Deliveries',
+        
+        // Equipment Rentals
+        'I. Camera Rental', 'I. Sound Rental', 'I. Lighting Rental', 'I. Grip Rental',
+        'I. Generator Rental', 'I. Crane Rental', 'I. VTR Rental', 'I. Walkie Talkie Rental',
+        'I. Dolly Rental', 'I. Helicopter', 'I. Production Supplies', 'I. Jib Arm',
+        'I. Crane Head', 'I. Camera Accessories', 'I. Expendables', 'I. Lenses',
+        'I. Cinedrives',
+        
+        // Media
+        'J. Media / Drives', 'J. Film', 'J. Transcode / Transfer', 'J. Process', 'J. Dailies',
+        
+        // Miscellaneous Production Cost
+        'K. Insurance', 'K. Misc Other Production Costs', 'K. Specialty Service',
+        
+        // Talent Expenses
+        'L. Talent Fee', 'L. Talent Flights', 'L. Talent Hotels', 'L. Talent Meals',
+        'L. Talent Manager', 'L. Other Talent Related Expenses', 'L. Agency Fees',
+        
+        // Post Production Labor
+        'M. Editor', 'M. Editor - Assistant', 'M. Editor - Senior', 'M. CMS Manager',
+        'M. Animator (2D)', 'M. Animator - Senior (3D)', 'M. Producer - Post',
+        'M. VFX Supervisor', 'M. Post Audio Engineer', 'M. Colorist', 'M. VO Artist',
+        'M. Graphic Designer', 'M. Graphic Designer - Senior', 'M. Animation Supervisor',
+        'M. Post Production Supervisor', 'M. Post Production Fringe',
+        
+        // Post Production Expenses
+        'N. Music Clearance', 'N. Music Library Fees', 'N. Stock Image Licensing',
+        'N. Stock Video Licensing', 'N. Transcriptions and Translations',
+        
+        // Creative and Strategic Services
+        'O. Art Director', 'O. Art Director - Senior', 'O. Copywriter', 'O. Copywriter - Senior',
+        'O. Creative Director', 'O. Creative Director - Associate', 'O. Graphic Designer',
+        'O. Graphic Designer - Senior', 'O. UI/UX Designer', 'O. Experiential Designer',
+        'O. Experiential Producer', 'O. Illustrator', 'O. Strategy - Creative Strategist',
+        'O. Strategy - Strategy Director', 'O. Storyboard Artist', 'O. Group Creative Director',
+        'O. Creative and Strategic Services Fringe',
+        
+        // Creative and Strategic Services Expenses
+        'P. Airfare', 'P. Hotel', 'P. Per Diems', 'P. Taxi & Rideshare', 'P. Car Rental',
+        'P. Catering', 'P. Fabrication', 'P. Furniture and Decor', 'P. Signage and Print',
+        'P. Shipping and Postage',
+        
+        // Account and Project Management
+        'Q. Account Manager', 'Q. Account Director', 'Q. Project Manager',
+        'Q. Project Manager - Senior', 'Q. Supervising Project Manager',
+        
+        // Account and Project Management Expenses
+        'R. Airfare', 'R. Hotel', 'R. Per Diems', 'R. Taxi & Rideshare', 'R. Car Rental'
+    ];
 
     // Initialize default dates
     const initializeDates = () => {
@@ -56,19 +145,36 @@ document.addEventListener('DOMContentLoaded', () => {
         if (serviceEndEl) serviceEndEl.value = isoDate;
     };
 
-    // Create searchable dropdown with proper positioning
+    // Create searchable dropdown - SIMPLIFIED VERSION
     const createSearchableDropdown = (container) => {
         const wrapper = document.createElement('div');
         wrapper.className = 'searchable-dropdown';
+        wrapper.style.position = 'relative';
+        wrapper.style.width = '100%';
         
         const input = document.createElement('input');
         input.type = 'text';
         input.placeholder = 'Type to search services...';
         input.className = 'table-input service-input';
+        input.style.width = '100%';
         
         const dropdown = document.createElement('div');
         dropdown.className = 'dropdown-list';
-        dropdown.style.display = 'none';
+        dropdown.style.cssText = `
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            z-index: 1000;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+            display: none;
+        `;
         
         let selectedValue = '';
         let isOpen = false;
@@ -78,10 +184,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             let filteredOptions;
             if (!searchTerm.trim()) {
-                // Show first 15 options when empty to prevent overwhelming UI
                 filteredOptions = serviceOptions.slice(0, 15);
             } else {
-                // Filter options based on search term
                 filteredOptions = serviceOptions.filter(option => 
                     option.toLowerCase().includes(searchTerm.toLowerCase())
                 );
@@ -89,104 +193,106 @@ document.addEventListener('DOMContentLoaded', () => {
             
             if (filteredOptions.length === 0) {
                 const noResultsDiv = document.createElement('div');
-                noResultsDiv.className = 'dropdown-item';
-                noResultsDiv.style.fontStyle = 'italic';
-                noResultsDiv.style.color = '#6b7280';
+                noResultsDiv.style.cssText = `
+                    padding: 8px;
+                    font-style: italic;
+                    color: #6b7280;
+                    cursor: default;
+                `;
                 noResultsDiv.textContent = 'No services found';
                 dropdown.appendChild(noResultsDiv);
             } else {
-                // Limit to first 20 results for performance
                 filteredOptions.slice(0, 20).forEach(option => {
-                    addDropdownItem(option);
+                    const div = document.createElement('div');
+                    div.style.cssText = `
+                        padding: 8px;
+                        cursor: pointer;
+                        font-size: 14px;
+                        color: #1f2937;
+                        transition: background-color 0.15s ease;
+                        line-height: 1.2;
+                        white-space: nowrap;
+                        overflow: hidden;
+                        text-overflow: ellipsis;
+                    `;
+                    div.textContent = option;
+                    
+                    div.addEventListener('mouseenter', () => {
+                        div.style.backgroundColor = '#2563eb';
+                        div.style.color = 'white';
+                    });
+                    
+                    div.addEventListener('mouseleave', () => {
+                        div.style.backgroundColor = 'white';
+                        div.style.color = '#1f2937';
+                    });
+                    
+                    div.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        input.value = option;
+                        selectedValue = option;
+                        input.dataset.selectedValue = option;
+                        closeDropdown();
+                        calculateTotals();
+                    });
+                    
+                    dropdown.appendChild(div);
                 });
                 
                 if (filteredOptions.length > 20) {
                     const moreDiv = document.createElement('div');
-                    moreDiv.className = 'dropdown-item';
-                    moreDiv.style.fontStyle = 'italic';
-                    moreDiv.style.color = '#6b7280';
+                    moreDiv.style.cssText = `
+                        padding: 8px;
+                        font-style: italic;
+                        color: #6b7280;
+                        cursor: default;
+                    `;
                     moreDiv.textContent = `... and ${filteredOptions.length - 20} more results`;
                     dropdown.appendChild(moreDiv);
                 }
             }
         };
         
-        const addDropdownItem = (option) => {
-            const div = document.createElement('div');
-            div.className = 'dropdown-item';
-            div.textContent = option;
-            
-            div.addEventListener('click', (e) => {
-                e.stopPropagation();
-                input.value = option;
-                selectedValue = option;
-                input.dataset.selectedValue = option;
-                closeDropdown();
-                calculateTotals();
-            });
-            
-            dropdown.appendChild(div);
-        };
-        
         const openDropdown = () => {
             if (!isOpen) {
                 isOpen = true;
-                
-                // Remove dropdown-active class from all rows first
-                document.querySelectorAll('.table-row').forEach(row => {
-                    row.classList.remove('dropdown-active');
-                });
-                
-                // Add dropdown-active class to current row
-                const currentRow = wrapper.closest('.table-row');
-                if (currentRow) {
-                    currentRow.classList.add('dropdown-active');
-                }
-                
                 dropdown.style.display = 'block';
                 filterOptions(input.value);
+                
+                // Close other dropdowns
+                document.querySelectorAll('.dropdown-list').forEach(otherDropdown => {
+                    if (otherDropdown !== dropdown) {
+                        otherDropdown.style.display = 'none';
+                    }
+                });
             }
         };
 
         const closeDropdown = () => {
             isOpen = false;
             dropdown.style.display = 'none';
-            
-            // Remove dropdown-active class from current row
-            const currentRow = wrapper.closest('.table-row');
-            if (currentRow) {
-                currentRow.classList.remove('dropdown-active');
-            }
         };
         
+        // Event listeners
         input.addEventListener('input', (e) => {
             if (!isOpen) openDropdown();
             filterOptions(e.target.value);
             
-            // Clear selected value if input doesn't match exactly
             if (e.target.value !== selectedValue) {
                 selectedValue = '';
                 input.dataset.selectedValue = '';
             }
         });
         
-        input.addEventListener('focus', () => {
-            openDropdown();
-        });
+        input.addEventListener('focus', openDropdown);
         
         input.addEventListener('blur', () => {
-            // Delay closing to allow for clicks on dropdown items
-            setTimeout(() => {
-                closeDropdown();
-            }, 150);
+            setTimeout(closeDropdown, 150);
         });
         
-        // Prevent input blur when clicking on dropdown
         dropdown.addEventListener('mousedown', (e) => {
             e.preventDefault();
         });
-        
-        // Listen for scroll and resize events to reposition dropdown
         
         wrapper.appendChild(input);
         wrapper.appendChild(dropdown);
@@ -208,7 +314,7 @@ document.addEventListener('DOMContentLoaded', () => {
         // Job Code cell
         const jobCodeCell = document.createElement('td');
         jobCodeCell.className = 'table-cell';
-        jobCodeCell.innerHTML = '<input type="text" placeholder="######" maxlength="6" class="table-input job-code" pattern="[0-9]{6}" title="Please enter a 6-digit job code">';
+        jobCodeCell.innerHTML = '<input type="text" placeholder="######" maxlength="6" class="table-input job-code" pattern="[0-9]{6}">';
         
         // Quantity cell
         const quantityCell = document.createElement('td');
@@ -265,7 +371,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const duplicateItem = (originalRow) => {
         const newRow = createItemRow();
         
-        // Get values from original row
         const originalServiceInput = originalRow.querySelector('.service-input');
         const originalJobCode = originalRow.querySelector('.job-code');
         const originalRate = originalRow.querySelector('.rate');
@@ -284,9 +389,7 @@ document.addEventListener('DOMContentLoaded', () => {
             newRow.querySelector('.rate').value = originalRate.value;
         }
         
-        // Clear quantity in new row
         newRow.querySelector('.quantity').value = '0';
-        
         calculateTotals();
     };
 
@@ -332,7 +435,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let isValid = true;
         const errors = [];
         
-        // Check required fields
         requiredFields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
             if (!field || !field.value.trim()) {
@@ -344,7 +446,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Check email format
         const emailFields = ['vendor-email', 'hiring-manager-email'];
         emailFields.forEach(fieldId => {
             const field = document.getElementById(fieldId);
@@ -355,7 +456,6 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
 
-        // Check if at least one item exists with a selected service
         const validItems = Array.from(document.querySelectorAll('.service-input'))
             .filter(input => input.dataset.selectedValue);
         
@@ -364,7 +464,6 @@ document.addEventListener('DOMContentLoaded', () => {
             isValid = false;
         }
 
-        // Check job codes
         const jobCodes = document.querySelectorAll('.job-code');
         jobCodes.forEach(input => {
             if (input.value && input.value.length !== 6) {
@@ -392,7 +491,6 @@ document.addEventListener('DOMContentLoaded', () => {
         statusMessage.textContent = message;
         statusMessage.className = `status-message status-${type} show`;
         
-        // Auto-hide after 5 seconds
         setTimeout(() => {
             statusMessage.classList.remove('show');
         }, 5000);
@@ -400,41 +498,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Generate PDF
     const generatePDF = async () => {
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         try {
             showStatusMessage('Generating PDF...', 'info');
             downloadPdfBtn.disabled = true;
             downloadPdfBtn.textContent = 'Generating...';
 
-            // Check if jsPDF is loaded
             if (typeof window.jspdf === 'undefined') {
                 throw new Error('PDF library not loaded. Please refresh the page and try again.');
             }
 
-            // Create PDF using jsPDF
             const { jsPDF } = window.jspdf;
             const pdf = new jsPDF('p', 'mm', 'a4');
             
-            // Set up dimensions
             const pageWidth = 210;
             const pageHeight = 297;
             const margin = 20;
-            const contentWidth = pageWidth - (margin * 2);
             let yPosition = margin;
             
-            // Helper function to add text with word wrapping
             const addText = (text, x, y, fontSize = 10, style = 'normal') => {
                 pdf.setFontSize(fontSize);
                 pdf.setFont('helvetica', style);
-                const lines = pdf.splitTextToSize(text, contentWidth - x + margin);
+                const lines = pdf.splitTextToSize(text, pageWidth - margin * 2);
                 pdf.text(lines, x, y);
                 return y + (lines.length * fontSize * 0.4);
             };
             
-            // Helper function to check if we need a new page
             const checkPageBreak = (neededHeight) => {
                 if (yPosition + neededHeight > pageHeight - margin) {
                     pdf.addPage();
@@ -453,11 +543,10 @@ document.addEventListener('DOMContentLoaded', () => {
             pdf.text('Professional Services Invoice', margin, yPosition);
             yPosition += 15;
 
-            // Vendor and Client Info Side by Side
+            // Vendor Info
             const leftCol = margin;
             const rightCol = pageWidth / 2 + 10;
             
-            // Vendor Info
             let leftY = yPosition;
             pdf.setFont('helvetica', 'bold');
             pdf.text('Vendor Information:', leftCol, leftY);
@@ -538,14 +627,12 @@ document.addEventListener('DOMContentLoaded', () => {
             pdf.text('Invoice Items:', margin, yPosition);
             yPosition += 8;
 
-            // Table headers
             const colWidths = [60, 25, 20, 25, 25];
             const colPositions = [margin];
             for (let i = 1; i < colWidths.length; i++) {
                 colPositions[i] = colPositions[i-1] + colWidths[i-1];
             }
 
-            // Draw table header
             pdf.setFont('helvetica', 'bold');
             pdf.setFontSize(9);
             pdf.text('Service/Item', colPositions[0], yPosition);
@@ -555,11 +642,9 @@ document.addEventListener('DOMContentLoaded', () => {
             pdf.text('Amount', colPositions[4], yPosition);
             yPosition += 6;
 
-            // Draw header line
             pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
             yPosition += 2;
 
-            // Table rows
             pdf.setFont('helvetica', 'normal');
             let subtotal = 0;
             
@@ -574,7 +659,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 const amount = parseFloat(hours) * parseFloat(rate);
                 subtotal += amount;
 
-                // Truncate service name if too long
                 const serviceName = service.length > 35 ? service.substring(0, 35) + '...' : service;
                 
                 pdf.text(serviceName, colPositions[0], yPosition);
@@ -610,7 +694,6 @@ document.addEventListener('DOMContentLoaded', () => {
             pdf.text('Total:', totalsX, yPosition);
             pdf.text(`$${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
 
-            // Generate filename
             const vendorNameClean = vendorName
                 .replace(/[^a-zA-Z0-9\s]/g, '')
                 .replace(/\s+/g, '_')
@@ -620,7 +703,6 @@ document.addEventListener('DOMContentLoaded', () => {
             
             const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
 
-            // Save the PDF
             pdf.save(filename);
             showStatusMessage('PDF downloaded successfully!', 'success');
             
@@ -637,16 +719,13 @@ document.addEventListener('DOMContentLoaded', () => {
     const handleSubmit = async (e) => {
         e.preventDefault();
         
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
         try {
             submitBtn.disabled = true;
             submitBtn.textContent = 'Submitting...';
             showStatusMessage('Submitting data to spreadsheet...', 'info');
 
-            // Collect form data
             const invoiceData = {
                 timestamp: new Date().toISOString(),
                 costCenter: document.getElementById('cost-center').value,
@@ -669,7 +748,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 items: []
             };
 
-            // Collect items data
             document.querySelectorAll('.table-row').forEach(row => {
                 const serviceInput = row.querySelector('.service-input');
                 const serviceItem = serviceInput.dataset.selectedValue || serviceInput.value;
@@ -678,7 +756,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const rate = row.querySelector('.rate').value;
                 const amount = row.querySelector('.amount-cell').textContent;
                 
-                if (serviceItem) { // Only add rows with selected services
+                if (serviceItem) {
                     invoiceData.items.push({
                         serviceItem,
                         jobCode: jobCode || '',
@@ -689,7 +767,6 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             });
 
-            // Submit to Google Apps Script
             if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
                 throw new Error('Please configure your Google Apps Script URL in the JavaScript file');
             }
@@ -724,13 +801,6 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Clear validation errors on input
-    const clearValidationError = (e) => {
-        if (e.target.classList.contains('validation-error')) {
-            e.target.classList.remove('validation-error');
-        }
-    };
-
     // Event Listeners
     addItemBtn.addEventListener('click', createItemRow);
     submitBtn.addEventListener('click', handleSubmit);
@@ -743,7 +813,6 @@ document.addEventListener('DOMContentLoaded', () => {
             e.target.closest('.table-row').remove();
             calculateTotals();
             
-            // Ensure at least one row exists
             if (itemsContainer.children.length === 0) {
                 createItemRow();
             }
@@ -753,9 +822,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
     
-    // Clear validation errors and recalculate on input
+    // Clear validation errors on input
     invoiceForm.addEventListener('input', (e) => {
-        clearValidationError(e);
+        if (e.target.classList.contains('validation-error')) {
+            e.target.classList.remove('validation-error');
+        }
         if (e.target.classList.contains('quantity') || e.target.classList.contains('rate') || e.target.id === 'tax-rate') {
             calculateTotals();
         }
@@ -772,7 +843,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialize the form
     initializeDates();
-    createItemRow(); // Create initial item row
+    createItemRow();
     calculateTotals();
 
     console.log('Invoice form initialized successfully');
