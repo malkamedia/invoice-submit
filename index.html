@@ -806,7 +806,7 @@
             const statusMessage = document.getElementById('status-message');
 
             // Configuration
-            const GOOGLE_SCRIPT_URL = 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE';
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwcj9X6SiFArXfezuds6fh_U2hVXMh09YcrYhNCuZ1KyLLwWdQNmTYGxLT6Uv4m95QQ_A/exec';
 
             // Initialize default dates
             const initializeDates = () => {
@@ -1484,7 +1484,7 @@
                     }
                 });
 
-                if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
+                if (GOOGLE_SCRIPT_URL === 'https://script.google.com/macros/s/AKfycbwcj9X6SiFArXfezuds6fh_U2hVXMh09YcrYhNCuZ1KyLLwWdQNmTYGxLT6Uv4m95QQ_A/exec') {
                     showStatusMessage('Please configure your Google Apps Script URL', 'error');
                     submitBtn.disabled = false;
                     submitBtn.textContent = '📤 Submit to Spreadsheet';
