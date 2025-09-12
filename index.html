@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vendor Invoice Form - Malka Media Group</title>
     
+    <!-- External Libraries for PDF Generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
     <style>
-        /* Invoice Form Styles - Complete Fix */
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
         :root {
@@ -30,21 +33,18 @@
             --font-size-lg: 1rem;
             --font-size-xl: 1.125rem;
             --font-size-2xl: 1.25rem;
-            --font-size-3xl: 1.5rem;
             --space-1: 0.25rem;
             --space-2: 0.375rem;
             --space-3: 0.5rem;
             --space-4: 0.75rem;
             --space-5: 1rem;
             --space-6: 1.25rem;
-            --space-8: 1.5rem;
             --border-radius-sm: 0.25rem;
             --border-radius: 0.375rem;
             --border-radius-lg: 0.5rem;
             --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
             --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
         }
 
         * {
@@ -130,8 +130,6 @@
             font-weight: 600;
             color: var(--color-gray-900);
             margin-bottom: var(--space-4);
-            display: flex;
-            align-items: center;
         }
 
         .required-field::after {
@@ -153,7 +151,6 @@
             border: 1px solid var(--color-gray-300);
             border-radius: var(--border-radius);
             font-size: var(--font-size-sm);
-            font-weight: 400;
             background: white;
             transition: all 0.2s ease;
             outline: none;
@@ -165,7 +162,6 @@
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
 
-        /* Only apply dropdown arrow to actual select elements */
         select.form-select {
             width: 100%;
             padding: var(--space-2) var(--space-3);
@@ -173,7 +169,6 @@
             border: 1px solid var(--color-gray-300);
             border-radius: var(--border-radius);
             font-size: var(--font-size-sm);
-            font-weight: 400;
             background: white;
             color: var(--color-gray-800);
             cursor: pointer;
@@ -192,14 +187,12 @@
             box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1);
         }
 
-        /* Style optgroups */
         optgroup {
             font-weight: 600;
             color: var(--color-gray-700);
             background: var(--color-gray-50);
         }
 
-        /* Tax input without dropdown styling */
         .tax-input {
             width: 60px !important;
             padding: var(--space-1) var(--space-2) !important;
@@ -209,14 +202,6 @@
             font-size: var(--font-size-sm) !important;
             height: 28px !important;
             background: white !important;
-            appearance: textfield !important;
-            -moz-appearance: textfield !important;
-        }
-
-        .tax-input::-webkit-inner-spin-button,
-        .tax-input::-webkit-outer-spin-button {
-            -webkit-appearance: none;
-            margin: 0;
         }
 
         .bill-to-section {
@@ -300,7 +285,6 @@
             border-spacing: 0;
             background: white;
             border: 1px solid var(--color-gray-200);
-            border-radius: 0;
             margin-bottom: var(--space-4);
             box-shadow: var(--shadow-sm);
             font-size: var(--font-size-sm);
@@ -428,13 +412,19 @@
             box-shadow: var(--shadow-md);
         }
 
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-primary {
             background: var(--color-primary);
             color: white;
             border: 1px solid var(--color-primary);
         }
 
-        .btn-primary:hover {
+        .btn-primary:hover:not(:disabled) {
             background: var(--color-primary-light);
         }
 
@@ -442,6 +432,10 @@
             background: var(--color-success);
             color: white;
             border: 1px solid var(--color-success);
+        }
+
+        .btn-success:hover:not(:disabled) {
+            background: #047857;
         }
 
         .add-item-btn {
@@ -550,24 +544,18 @@
             border: 1px solid #ef4444;
         }
 
+        .status-info {
+            background: #eff6ff;
+            color: #1e40af;
+            border: 1px solid #3b82f6;
+        }
+
         .validation-error {
             border-color: var(--color-danger) !important;
         }
 
-        @media print {
-            body {
-                background: white;
-                padding: 0;
-            }
-            
-            .invoice-container {
-                box-shadow: none;
-                border: none;
-            }
-            
-            .no-print {
-                display: none !important;
-            }
+        .no-print {
+            /* These elements won't be included in PDF */
         }
 
         @media (max-width: 768px) {
@@ -748,10 +736,10 @@
             
             <div class="button-group">
                 <button type="button" id="download-pdf-btn" class="btn btn-success">
-                    Download PDF
+                    📥 Download PDF
                 </button>
                 <button type="button" id="submit-btn" class="btn btn-primary">
-                    Submit to Spreadsheet
+                    📤 Submit to Spreadsheet
                 </button>
             </div>
             
@@ -1175,12 +1163,87 @@
                 createItemRow(data);
             };
 
+            // Generate PDF using jsPDF and html2canvas
+            const generatePDF = async () => {
+                try {
+                    showStatusMessage('Generating PDF...', 'info');
+                    downloadPdfBtn.disabled = true;
+                    downloadPdfBtn.textContent = '⏳ Generating...';
+
+                    // Check if jsPDF is loaded
+                    if (typeof window.jspdf === 'undefined') {
+                        throw new Error('PDF library not loaded. Please refresh the page and try again.');
+                    }
+
+                    // Hide elements that shouldn't be in PDF
+                    const elementsToHide = document.querySelectorAll('.no-print');
+                    elementsToHide.forEach(el => el.style.display = 'none');
+
+                    // Use html2canvas to capture the invoice
+                    const canvas = await html2canvas(document.getElementById('invoice-form'), {
+                        scale: 2,
+                        useCORS: true,
+                        logging: false,
+                        windowWidth: document.getElementById('invoice-form').scrollWidth,
+                        windowHeight: document.getElementById('invoice-form').scrollHeight
+                    });
+
+                    // Restore hidden elements
+                    elementsToHide.forEach(el => el.style.display = '');
+
+                    // Create PDF
+                    const { jsPDF } = window.jspdf;
+                    const imgData = canvas.toDataURL('image/png');
+                    
+                    // Calculate dimensions
+                    const imgWidth = 210; // A4 width in mm
+                    const pageHeight = 297; // A4 height in mm
+                    const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                    let heightLeft = imgHeight;
+
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    let position = 0;
+
+                    // Add first page
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+
+                    // Add additional pages if needed
+                    while (heightLeft >= 0) {
+                        position = heightLeft - imgHeight;
+                        pdf.addPage();
+                        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                        heightLeft -= pageHeight;
+                    }
+
+                    // Generate filename
+                    const vendorName = document.getElementById('vendor-name').value || 'Invoice';
+                    const invoiceNum = document.getElementById('invoice-number').value || 'INV-001';
+                    const invoiceDate = document.getElementById('invoice-date').value || new Date().toISOString().split('T')[0];
+                    
+                    const cleanName = vendorName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 20);
+                    const cleanNum = invoiceNum.replace(/[^a-zA-Z0-9]/g, '_');
+                    const filename = `${cleanName}_${cleanNum}_${invoiceDate}.pdf`;
+
+                    // Save the PDF
+                    pdf.save(filename);
+                    showStatusMessage('PDF downloaded successfully!', 'success');
+                    
+                } catch (error) {
+                    console.error('PDF generation error:', error);
+                    showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
+                } finally {
+                    downloadPdfBtn.disabled = false;
+                    downloadPdfBtn.textContent = '📥 Download PDF';
+                }
+            };
+
             // Handle submit
             const handleSubmit = async (e) => {
                 e.preventDefault();
                 
                 submitBtn.disabled = true;
-                submitBtn.textContent = 'Submitting...';
+                submitBtn.textContent = '⏳ Submitting...';
                 
                 const invoiceData = {
                     timestamp: new Date().toISOString(),
@@ -1220,7 +1283,7 @@
                 if (GOOGLE_SCRIPT_URL === 'YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') {
                     showStatusMessage('Please configure your Google Apps Script URL', 'error');
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit to Spreadsheet';
+                    submitBtn.textContent = '📤 Submit to Spreadsheet';
                     return;
                 }
 
@@ -1236,14 +1299,14 @@
                     console.error('Error:', error);
                 } finally {
                     submitBtn.disabled = false;
-                    submitBtn.textContent = 'Submit to Spreadsheet';
+                    submitBtn.textContent = '📤 Submit to Spreadsheet';
                 }
             };
 
             // Event Listeners
             addItemBtn.addEventListener('click', () => createItemRow());
             submitBtn.addEventListener('click', handleSubmit);
-            downloadPdfBtn.addEventListener('click', () => window.print());
+            downloadPdfBtn.addEventListener('click', generatePDF);
             taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
