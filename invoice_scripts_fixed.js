@@ -73,24 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
         let selectedValue = '';
         let isOpen = false;
         
-        // Calculate and update dropdown position
-        const updateDropdownPosition = () => {
-            const inputRect = input.getBoundingClientRect();
-            const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
-            const scrollLeft = window.pageXOffset || document.documentElement.scrollLeft;
-            
-            dropdown.style.left = `${inputRect.left + scrollLeft}px`;
-            dropdown.style.top = `${inputRect.bottom + scrollTop}px`;
-            dropdown.style.width = `${inputRect.width}px`;
-        };
-        
-        // Reposition dropdown on scroll/resize
-        const repositionDropdown = () => {
-            if (isOpen) {
-                updateDropdownPosition();
-            }
-        };
-        
         const filterOptions = (searchTerm) => {
             dropdown.innerHTML = '';
             
@@ -161,7 +143,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     currentRow.classList.add('dropdown-active');
                 }
                 
-                updateDropdownPosition();
                 dropdown.style.display = 'block';
                 filterOptions(input.value);
             }
@@ -206,8 +187,6 @@ document.addEventListener('DOMContentLoaded', () => {
         });
         
         // Listen for scroll and resize events to reposition dropdown
-        window.addEventListener('scroll', repositionDropdown, { passive: true });
-        window.addEventListener('resize', repositionDropdown);
         
         wrapper.appendChild(input);
         wrapper.appendChild(dropdown);
