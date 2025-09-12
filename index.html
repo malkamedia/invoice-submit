@@ -473,7 +473,12 @@
                                     overflow: hidden;
                                     text-overflow: ellipsis;
                                 `;
-                                div.textContent = option.text;
+                                
+                                // Make sure we're getting the text property correctly
+                                const displayText = typeof option === 'object' ? option.text : option;
+                                const optionValue = typeof option === 'object' ? option.value : option;
+                                
+                                div.textContent = displayText;
                                 
                                 div.addEventListener('mouseenter', () => {
                                     div.style.backgroundColor = '#2563eb';
@@ -487,11 +492,11 @@
                                 
                                 div.addEventListener('click', (e) => {
                                     e.stopPropagation();
-                                    input.value = option.text;
-                                    selectedValue = option.value;
-                                    input.dataset.selectedValue = option.value;
+                                    input.value = displayText;
+                                    selectedValue = optionValue;
+                                    input.dataset.selectedValue = optionValue;
                                     if (hiddenInputId) {
-                                        document.getElementById(hiddenInputId).value = option.value;
+                                        document.getElementById(hiddenInputId).value = optionValue;
                                     }
                                     closeDropdown();
                                 });
