@@ -9,8 +9,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
-    <!-- Custom Styles -->
-    <link rel="stylesheet" href="invoice_styles.css">
+    <!-- FIXED: Use the corrected CSS file -->
+    <link rel="stylesheet" href="invoice_styles_fixed.css">
 </head>
 <body>
     <div id="invoice-form" class="invoice-container">
@@ -54,10 +54,12 @@
                                class="form-input" required>
                     </div>
                     
-                    <!-- Cost Center - Now Custom Dropdown -->
+                    <!-- FIXED: Cost Center Custom Dropdown Container -->
                     <div class="cost-center-field">
                         <label for="cost-center" class="detail-label required-field">Cost Center:</label>
-                        <div id="cost-center-dropdown" class="custom-dropdown-container" required></div>
+                        <!-- CRITICAL: Container for custom dropdown -->
+                        <div id="cost-center-dropdown" class="custom-dropdown-container"></div>
+                        <!-- CRITICAL: Hidden input to store the actual value -->
                         <input type="hidden" id="cost-center" name="cost-center" required>
                     </div>
                 </div>
@@ -77,7 +79,9 @@
                     </div>
                     <div class="detail-row">
                         <label for="pay-terms" class="detail-label required-field">Payment Terms:</label>
-                        <div id="pay-terms-dropdown" class="custom-dropdown-container" required></div>
+                        <!-- CRITICAL: Container for custom dropdown -->
+                        <div id="pay-terms-dropdown" class="custom-dropdown-container"></div>
+                        <!-- CRITICAL: Hidden input to store the actual value -->
                         <input type="hidden" id="pay-terms" name="pay-terms" required>
                     </div>
                     <div class="detail-row">
@@ -108,24 +112,27 @@
             </div>
         </section>
 
-        <!-- Invoice Items Section -->
+        <!-- FIXED: Invoice Items Section with proper structure -->
         <section class="form-section">
             <h2 class="section-title">Invoice Items</h2>
-            <table class="invoice-table">
-                <thead class="table-header">
-                    <tr>
-                        <th>Service / Item</th>
-                        <th>Job Code</th>
-                        <th>Hours/QTY</th>
-                        <th>Rate</th>
-                        <th>Amount</th>
-                        <th class="no-print">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="invoice-items">
-                    <!-- Item rows will be dynamically added here -->
-                </tbody>
-            </table>
+            <div class="table-wrapper">
+                <table class="invoice-table">
+                    <thead class="table-header">
+                        <tr>
+                            <th>Service / Item</th>
+                            <th>Job Code</th>
+                            <th>Hours/QTY</th>
+                            <th>Rate</th>
+                            <th>Amount</th>
+                            <th class="no-print">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="invoice-items">
+                        <!-- CRITICAL: Item rows will be dynamically added here -->
+                        <!-- Each row will contain searchable dropdowns for services -->
+                    </tbody>
+                </table>
+            </div>
             <button type="button" id="add-item-btn" class="btn btn-primary add-item-btn no-print">
                 + Add Item
             </button>
@@ -168,12 +175,13 @@
                 </button>
             </div>
             
+            <!-- FIXED: Status message container -->
             <div id="status-message" class="status-message"></div>
         </footer>
     </div>
 
-<!-- Custom JavaScript -->
-<script src="invoice_scripts_fixed.js"></script>
+    <!-- FIXED: Use the corrected JavaScript file -->
+    <script src="invoice_scripts_fixed.js"></script>
     
 </body>
 </html>
