@@ -1241,7 +1241,7 @@
                         timestamp: new Date().toISOString(),
                         costCenter: document.getElementById('cost-center').value,
                         vendorName: document.getElementById('vendor-name').value,
-                        vendorLlc: document.getElementById('vendor-llc').value,
+                        vendorLlc: document.getElementById('vendor-llc').value || '',
                         vendorAddress: document.getElementById('vendor-address').value,
                         vendorCity: document.getElementById('vendor-city').value,
                         vendorEmail: document.getElementById('vendor-email').value,
@@ -1326,13 +1326,12 @@
                     pdf.setFont('helvetica', 'normal');
                     
                     const vendorName = invoiceData.vendorName || 'N/A';
-                    const vendorLlc = invoiceData.vendorLlc || 'N/A';
                     const vendorAddress = invoiceData.vendorAddress || 'N/A';
                     const vendorCity = invoiceData.vendorCity || 'N/A';
                     const vendorEmail = invoiceData.vendorEmail || 'N/A';
                     
                     leftY = addText(vendorName, leftCol, leftY);
-                    if (vendorLlc) leftY = addText(vendorLlc, leftCol, leftY);
+                    if (vendorLlc) leftY = addText(`${vendorLlc}`, leftCol, leftY);
                     leftY = addText(vendorAddress, leftCol, leftY);
                     leftY = addText(vendorCity, leftCol, leftY);
                     leftY = addText(vendorEmail, leftCol, leftY);
