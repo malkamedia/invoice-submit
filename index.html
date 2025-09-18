@@ -637,7 +637,7 @@
                     <div class="vendor-fields">
                         <input id="vendor-name" type="text" placeholder="Vendor Name" 
                                class="form-input" required>
-                        <input id="vendor-name" type="text" placeholder="Business or LLC Name (if applicable)" 
+                        <input id="vendor-llc" type="text" placeholder="Business or LLC Name (if applicable)" 
                                class="form-input">
                         <input id="vendor-address" type="text" placeholder="Vendor Address" 
                                class="form-input">
@@ -1241,6 +1241,7 @@
                         timestamp: new Date().toISOString(),
                         costCenter: document.getElementById('cost-center').value,
                         vendorName: document.getElementById('vendor-name').value,
+                        vendorLlc: document.getElementById('vendor-llc').value,
                         vendorAddress: document.getElementById('vendor-address').value,
                         vendorCity: document.getElementById('vendor-city').value,
                         vendorEmail: document.getElementById('vendor-email').value,
