@@ -816,6 +816,74 @@
                 document.getElementById('service-end').value = isoDate;
             };
 
+            // Validate required fields
+            const validateForm = () => {
+                const errors = [];
+                const requiredFields = [
+                    { id: 'vendor-name', label: 'Vendor Name' },
+                    { id: 'vendor-email', label: 'Vendor Email' },
+                    { id: 'client-name', label: 'Client Name' },
+                    { id: 'hiring-manager', label: 'Hiring Manager' },
+                    { id: 'hiring-manager-email', label: 'Hiring Manager Email' },
+                    { id: 'cost-center', label: 'Cost Center' },
+                    { id: 'invoice-number', label: 'Invoice Number' },
+                    { id: 'invoice-date', label: 'Invoice Date' },
+                    { id: 'pay-terms', label: 'Payment Terms' },
+                    { id: 'service-start', label: 'Service Start Date' },
+                    { id: 'service-end', label: 'Service End Date' }
+                ];
+
+                // Check required fields
+                requiredFields.forEach(field => {
+                    const element = document.getElementById(field.id);
+                    if (!element.value.trim()) {
+                        errors.push(field.label);
+                        element.classList.add('validation-error');
+                    } else {
+                        element.classList.remove('validation-error');
+                    }
+                });
+
+                // Validate email formats
+                const vendorEmail = document.getElementById('vendor-email').value;
+                const hiringEmail = document.getElementById('hiring-manager-email').value;
+                const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                
+                if (vendorEmail && !emailRegex.test(vendorEmail)) {
+                    errors.push('Vendor Email (invalid format)');
+                    document.getElementById('vendor-email').classList.add('validation-error');
+                }
+                
+                if (hiringEmail && !emailRegex.test(hiringEmail)) {
+                    errors.push('Hiring Manager Email (invalid format)');
+                    document.getElementById('hiring-manager-email').classList.add('validation-error');
+                }
+
+                // Check if at least one item exists with service selected
+                const items = document.querySelectorAll('.table-row');
+                let hasValidItem = false;
+                
+                items.forEach(row => {
+                    const serviceItem = row.querySelector('.service-item').value;
+                    const jobCode = row.querySelector('.job-code').value;
+                    
+                    if (serviceItem) {
+                        hasValidItem = true;
+                        // Validate job code is 6 digits if service is selected
+                        if (jobCode.length > 0 && jobCode.length !== 6) {
+                            errors.push('Job Code must be 6 digits');
+                            row.querySelector('.job-code').classList.add('validation-error');
+                        }
+                    }
+                });
+
+                if (!hasValidItem) {
+                    errors.push('At least one service item');
+                }
+
+                return errors;
+            };
+
             // Create new item row with grouped dropdown
             const createItemRow = (copyData = null) => {
                 const row = document.createElement('tr');
@@ -1227,6 +1295,22 @@
             // Generate PDF and submit data
             const generatePDFAndSubmit = async () => {
                 try {
+                    // ADD VALIDATION CHECK HERE
+                    const validationErrors = validateForm();
+                    
+                    if (validationErrors.length > 0) {
+                        const errorMessage = 'Please complete the following required fields:\n• ' + validationErrors.join('\n• ');
+                        showStatusMessage(errorMessage, 'error');
+                        
+                        // Scroll to first error field
+                        const firstError = document.querySelector('.validation-error');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstError.focus();
+                        }
+                        return; // Stop execution if validation fails
+                    }
+
                     showStatusMessage('Generating PDF...', 'info');
                     downloadPdfBtn.disabled = true;
                     downloadPdfBtn.textContent = '⏳ Generating...';
