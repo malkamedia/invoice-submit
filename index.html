@@ -739,7 +739,7 @@
                 <thead class="table-header">
                     <tr>
                         <th>Service / Item</th>
-                        <th>Job Code</th>
+                        <th class="required-field">Job Code</th>
                         <th>Hours/QTY</th>
                         <th>Rate</th>
                         <th>Amount</th>
@@ -862,6 +862,7 @@
                 // Check if at least one item exists with service selected
                 const items = document.querySelectorAll('.table-row');
                 let hasValidItem = false;
+                let jobCodeErrors = false;
                 
                 items.forEach(row => {
                     const serviceItem = row.querySelector('.service-item').value;
@@ -869,10 +870,24 @@
                     
                     if (serviceItem) {
                         hasValidItem = true;
-                        // Validate job code is 6 digits if service is selected
-                        if (jobCode.length > 0 && jobCode.length !== 6) {
-                            errors.push('Job Code must be 6 digits');
+                        
+                        // Job code is REQUIRED when service is selected
+                        if (!jobCode || jobCode.length === 0) {
+                            if (!jobCodeErrors) {
+                                errors.push('Job Code is required for all service items');
+                                jobCodeErrors = true;
+                            }
                             row.querySelector('.job-code').classList.add('validation-error');
+                        } 
+                        // Also validate it's exactly 6 digits
+                        else if (jobCode.length !== 6) {
+                            if (!jobCodeErrors) {
+                                errors.push('Job Code must be exactly 6 digits');
+                                jobCodeErrors = true;
+                            }
+                            row.querySelector('.job-code').classList.add('validation-error');
+                        } else {
+                            row.querySelector('.job-code').classList.remove('validation-error');
                         }
                     }
                 });
