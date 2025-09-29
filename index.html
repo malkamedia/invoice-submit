@@ -1526,8 +1526,8 @@
                     pdf.text('Service/Item', colPositions[0], yPosition);
                     pdf.text('Job Code', colPositions[1], yPosition);
                     pdf.text('Hours', colPositions[2], yPosition);
-                    pdf.text('Rate', colPositions[3], yPosition);
-                    pdf.text('Amount', colPositions[4], yPosition);
+                    pdf.text('Rate ($)', colPositions[3], yPosition);
+                    pdf.text('Amount ($)', colPositions[4], yPosition);
                     yPosition += 6;
 
                     // Draw header line
@@ -1551,8 +1551,8 @@
                         pdf.text(serviceName, colPositions[0], yPosition);
                         pdf.text(item.jobCode || '', colPositions[1], yPosition);
                         pdf.text(item.hours, colPositions[2], yPosition);
-                        pdf.text(`${parseFloat(item.rate).toFixed(2)}`, colPositions[3], yPosition);
-                        pdf.text(`${amount.toFixed(2)}`, colPositions[4], yPosition);
+                        pdf.text(`$${parseFloat(item.rate).toFixed(2)}`, colPositions[3], yPosition);
+                        pdf.text(`$${amount.toFixed(2)}`, colPositions[4], yPosition);
                         yPosition += 6;
                     });
 
@@ -1568,12 +1568,12 @@
                     const totalsX = pageWidth - margin - 60;
                     pdf.setFont('helvetica', 'normal');
                     pdf.text('Subtotal:', totalsX, yPosition);
-                    pdf.text(`${subtotal.toFixed(2)}`, totalsX + 35, yPosition);
+                    pdf.text(`$${subtotal.toFixed(2)}`, totalsX + 35, yPosition);
                     yPosition += 6;
 
                     if (taxRate > 0) {
                         pdf.text(`Tax (${taxRate}%):`, totalsX, yPosition);
-                        pdf.text(`${taxAmount.toFixed(2)}`, totalsX + 35, yPosition);
+                        pdf.text(`$${taxAmount.toFixed(2)}`, totalsX + 35, yPosition);
                         yPosition += 6;
                     }
 
@@ -1581,8 +1581,8 @@
                     yPosition += 4;
 
                     pdf.setFont('helvetica', 'bold');
-                    pdf.text('Total:', totalsX, yPosition);
-                    pdf.text(`${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
+                    pdf.text('Total (USD):', totalsX, yPosition);
+                    pdf.text(`$${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
 
                     // Generate filename
                     const vendorNameClean = vendorName
