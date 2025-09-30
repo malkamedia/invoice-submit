@@ -623,9 +623,91 @@
                 flex-direction: column;
             }
         }
+        /* Welcome back notification */
+        .welcome-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-md);
+            max-width: 320px;
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .welcome-notification.show {
+            display: block;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-header {
+            font-weight: 600;
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .notification-buttons {
+            display: flex;
+            gap: var(--space-2);
+            margin-top: var(--space-3);
+        }
+
+        .notification-btn {
+            flex: 1;
+            padding: var(--space-2);
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--color-gray-300);
+            transition: all 0.2s ease;
+        }
+
+        .notification-btn-primary {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .notification-btn-primary:hover {
+            background: var(--color-primary-light);
+        }
+
+        .notification-btn-secondary {
+            background: white;
+            color: var(--color-gray-700);
+        }
+
+        .notification-btn-secondary:hover {
+            background: var(--color-gray-50);
+        }
     </style>
 </head>
 <body>
+    <!-- Welcome back notification -->
+    <div id="welcome-notification" class="welcome-notification">
+        <div class="notification-header">Welcome back<span id="vendor-greeting"></span>!</div>
+        <div style="font-size: 0.875rem; color: #6b7280;">Would you like to use your previously saved information?</div>
+        <div class="notification-buttons">
+            <button type="button" onclick="acceptStoredData()" class="notification-btn notification-btn-primary">Yes, use it</button>
+            <button type="button" onclick="declineStoredData()" class="notification-btn notification-btn-secondary">No thanks</button>
+        </div>
+    </div>
+    <div style="max-width: 56rem; margin: 1rem auto 1.5rem auto; padding: 0; text-align: center;">
     <div style="max-width: 56rem; margin: 1rem auto 1.5rem auto; padding: 0; text-align: center;">
         <svg viewBox="0 0 984 200" style="width: 180px; height: auto; display: inline-block;">
             <g fill="#1f2937">
@@ -802,6 +884,9 @@
                 <button type="button" id="download-pdf-btn" class="btn btn-success">
                     📥 Download Invoice PDF
                 </button>
+                <button type="button" id="clear-data-btn" class="btn" style="background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db;">
+                    🗑️ Clear Saved Info
+                </button>
             </div>
             
             <div id="status-message" class="status-message"></div>
@@ -828,8 +913,11 @@
             const downloadPdfBtn = document.getElementById('download-pdf-btn');
             const statusMessage = document.getElementById('status-message');
 
-            // Configuration
+// Configuration
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8R-GctZTTnby_JuanO9abTJg_XB4lfkUoYwbMnXS1KGRoDa_xi10B32CMAZF-eaeAdw/exec';
+            
+            // Global variable to store vendor data temporarily
+            let storedVendorData = null;
 
             // Initialize default dates
             const initializeDates = () => {
@@ -839,6 +927,125 @@
                 document.getElementById('invoice-date').value = isoDate;
                 document.getElementById('service-start').value = isoDate;
                 document.getElementById('service-end').value = isoDate;
+            };
+
+            // Local Storage Functions
+            const saveVendorInfo = () => {
+                const vendorInfo = {
+                    name: document.getElementById('vendor-name').value,
+                    llc: document.getElementById('vendor-llc').value,
+                    address: document.getElementById('vendor-address').value,
+                    city: document.getElementById('vendor-city').value,
+                    email: document.getElementById('vendor-email').value,
+                    // Also save frequently used client info if they've changed it
+                    hiringManager: document.getElementById('hiring-manager').value,
+                    hiringManagerEmail: document.getElementById('hiring-manager-email').value,
+                    costCenter: document.getElementById('cost-center').value,
+                    // Save timestamp
+                    lastSaved: new Date().toISOString()
+                };
+                
+                // Only save if vendor name exists
+                if (vendorInfo.name) {
+                    try {
+                        localStorage.setItem('malkaInvoiceVendorInfo', JSON.stringify(vendorInfo));
+                        console.log('Vendor information saved to browser');
+                    } catch (e) {
+                        console.error('Could not save to localStorage:', e);
+                    }
+                }
+            };
+
+            const loadVendorInfo = () => {
+                try {
+                    const savedInfo = localStorage.getItem('malkaInvoiceVendorInfo');
+                    
+                    if (savedInfo) {
+                        const vendor = JSON.parse(savedInfo);
+                        const lastSave = vendor.lastSaved;
+                        
+                        if (lastSave) {
+                            const daysSinceLastSave = (new Date() - new Date(lastSave)) / (1000 * 60 * 60 * 24);
+                            
+                            // Only offer to load if saved within last 90 days
+                            if (daysSinceLastSave < 90) {
+                                storedVendorData = vendor;
+                                
+                                // Show welcome notification
+                                const notification = document.getElementById('welcome-notification');
+                                const greeting = document.getElementById('vendor-greeting');
+                                
+                                if (vendor.name) {
+                                    greeting.textContent = ', ' + vendor.name.split(' ')[0]; // Use first name
+                                }
+                                
+                                notification.classList.add('show');
+                                
+                                // Auto-hide after 10 seconds if no action taken
+                                setTimeout(() => {
+                                    notification.classList.remove('show');
+                                }, 10000);
+                            } else {
+                                // Data is too old, clear it
+                                localStorage.removeItem('malkaInvoiceVendorInfo');
+                            }
+                        }
+                    }
+                } catch (e) {
+                    console.error('Could not load from localStorage:', e);
+                }
+            };
+
+            // Function to accept stored data (called from notification)
+            window.acceptStoredData = function() {
+                if (storedVendorData) {
+                    document.getElementById('vendor-name').value = storedVendorData.name || '';
+                    document.getElementById('vendor-llc').value = storedVendorData.llc || '';
+                    document.getElementById('vendor-address').value = storedVendorData.address || '';
+                    document.getElementById('vendor-city').value = storedVendorData.city || '';
+                    document.getElementById('vendor-email').value = storedVendorData.email || '';
+                    
+                    // Only fill client fields if they haven't been changed from defaults
+                    if (document.getElementById('hiring-manager').value === '') {
+                        document.getElementById('hiring-manager').value = storedVendorData.hiringManager || '';
+                    }
+                    if (document.getElementById('hiring-manager-email').value === '') {
+                        document.getElementById('hiring-manager-email').value = storedVendorData.hiringManagerEmail || '';
+                    }
+                    if (document.getElementById('cost-center').value === '') {
+                        document.getElementById('cost-center').value = storedVendorData.costCenter || '';
+                    }
+                    
+                    showStatusMessage('Your information has been loaded successfully!', 'success');
+                }
+                document.getElementById('welcome-notification').classList.remove('show');
+            };
+
+            // Function to decline stored data (called from notification)
+            window.declineStoredData = function() {
+                document.getElementById('welcome-notification').classList.remove('show');
+                storedVendorData = null;
+            };
+
+            // Clear stored data function
+            const clearStoredData = () => {
+                if (confirm('This will clear your saved vendor information from this browser. Continue?')) {
+                    try {
+                        localStorage.removeItem('malkaInvoiceVendorInfo');
+                        storedVendorData = null;
+                        showStatusMessage('Your saved information has been cleared.', 'info');
+                        
+                        // Clear the form
+                        document.getElementById('vendor-name').value = '';
+                        document.getElementById('vendor-llc').value = '';
+                        document.getElementById('vendor-address').value = '';
+                        document.getElementById('vendor-city').value = '';
+                        document.getElementById('vendor-email').value = '';
+                    } catch (e) {
+                        console.error('Could not clear localStorage:', e);
+                        showStatusMessage('Error clearing saved information.', 'error');
+                    }
+                }
             };
 
             // Validate required fields
@@ -1399,6 +1606,9 @@
 
                     // Submit to spreadsheet silently in the background
                     submitToSpreadsheet(invoiceData);
+                    
+                    // Save vendor info to local storage for next time
+                    saveVendorInfo();
 
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -1610,6 +1820,7 @@
             // Event Listeners
             addItemBtn.addEventListener('click', () => createItemRow());
             downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
+            document.getElementById('clear-data-btn').addEventListener('click', clearStoredData);
             taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
@@ -1629,6 +1840,7 @@
 
             // Initialize
             initializeDates();
+            loadVendorInfo(); // Check for saved vendor info
             createItemRow(); // Create initial row
             calculateTotals();
         });
