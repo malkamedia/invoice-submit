@@ -623,7 +623,7 @@
                 flex-direction: column;
             }
         }
-        /* Welcome back notification */
+/* Welcome back notification */
         .welcome-notification {
             position: fixed;
             top: 20px;
@@ -637,6 +637,7 @@
             z-index: 1000;
             display: none;
             animation: slideIn 0.3s ease-out;
+            text-align: left; /* Explicitly set text alignment */
         }
 
         .welcome-notification.show {
@@ -658,6 +659,7 @@
             font-weight: 600;
             color: var(--color-gray-900);
             margin-bottom: var(--space-2);
+            text-align: left; /* Ensure left alignment */
         }
 
         .notification-buttons {
@@ -675,6 +677,7 @@
             cursor: pointer;
             border: 1px solid var(--color-gray-300);
             transition: all 0.2s ease;
+            text-align: center; /* Center text only in buttons */
         }
 
         .notification-btn-primary {
