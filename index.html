@@ -1529,7 +1529,7 @@
                 
                 setTimeout(() => {
                     statusMessage.classList.remove('show');
-                }, 5000);
+                }, 8000);
             };
 
             // Duplicate row function
@@ -1588,7 +1588,7 @@
                     // Check for duplicates before generating PDF
                     const checkData = {
                         action: 'checkDuplicate',
-                        vendorName: document.getElementById('vendor-name').value,
+                        vendorEmail: document.getElementById('vendor-email').value,
                         invoiceNumber: document.getElementById('invoice-number').value
                     };
                     
