@@ -1861,17 +1861,12 @@
                         }
                         return;
                     }
-            
-                    showStatusMessage('Generating PDF and submitting to AP...', 'info');
+        
+                    showStatusMessage('Submitting invoice to AP...', 'info');
                     const submitBtn = document.getElementById('submit-to-ap-btn');
                     submitBtn.disabled = true;
-                    submitBtn.textContent = '⏳ Generating PDF...';
-            
-                    // Check if jsPDF is loaded
-                    if (typeof window.jspdf === 'undefined') {
-                        throw new Error('PDF library not loaded. Please refresh the page and try again.');
-                    }
-            
+                    submitBtn.textContent = '⏳ Submitting...';
+        
                     // Prepare invoice data
                     const invoiceData = {
                         action: 'submitToAP', // Special flag for AP submission
@@ -1896,7 +1891,7 @@
                         grandTotal: grandTotalEl.textContent,
                         items: []
                     };
-            
+        
                     document.querySelectorAll('.table-row').forEach(row => {
                         const serviceItem = row.querySelector('.service-item').value;
                         if (serviceItem) {
@@ -1909,8 +1904,12 @@
                             });
                         }
                     });
-            
-                    // Generate PDF using the same logic as download
+        
+                    // Check if jsPDF is loaded for PDF generation
+                    if (typeof window.jspdf === 'undefined') {
+                        throw new Error('PDF library not loaded. Please refresh the page and try again.');
+                    }
+        
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
                     
@@ -1937,7 +1936,7 @@
                             yPosition = margin;
                         }
                     };
-            
+        
                     // Title
                     pdf.setFontSize(24);
                     pdf.setFont('helvetica', 'bold');
@@ -1948,7 +1947,7 @@
                     pdf.setFont('helvetica', 'normal');
                     pdf.text('Professional Services Invoice', margin, yPosition);
                     yPosition += 15;
-            
+        
                     // Vendor and Client Info
                     const leftCol = margin;
                     const rightCol = pageWidth / 2 + 10;
@@ -1971,7 +1970,7 @@
                     leftY = addText(vendorAddress, leftCol, leftY);
                     leftY = addText(vendorCity, leftCol, leftY);
                     leftY = addText(vendorEmail, leftCol, leftY);
-            
+        
                     // Invoice Details
                     let rightY = yPosition;
                     pdf.setFont('helvetica', 'bold');
@@ -1983,9 +1982,9 @@
                     rightY = addText(`Date: ${invoiceData.invoiceDate || 'N/A'}`, rightCol, rightY);
                     rightY = addText(`Terms: ${invoiceData.payTerms || 'N/A'}`, rightCol, rightY);
                     if (invoiceData.poNumber) rightY = addText(`PO#: ${invoiceData.poNumber}`, rightCol, rightY);
-            
+        
                     yPosition = Math.max(leftY, rightY) + 10;
-            
+        
                     // Bill To and Cost Center
                     checkPageBreak(30);
                     
@@ -2005,7 +2004,7 @@
                     rightY = addText(costCenterText, rightCol, rightY);
                     
                     yPosition = Math.max(leftY, rightY) + 10;
-            
+        
                     // Service Period
                     checkPageBreak(20);
                     
@@ -2016,21 +2015,21 @@
                     
                     yPosition = addText(`${invoiceData.serviceStart || 'N/A'} to ${invoiceData.serviceEnd || 'N/A'}`, margin, yPosition);
                     yPosition += 10;
-            
+        
                     // Invoice Items Table
                     checkPageBreak(40);
                     
                     pdf.setFont('helvetica', 'bold');
                     pdf.text('Invoice Items:', margin, yPosition);
                     yPosition += 8;
-            
+        
                     // Table headers
                     const colWidths = [70, 25, 20, 20, 25];
                     const colPositions = [margin];
                     for (let i = 1; i < colWidths.length; i++) {
                         colPositions[i] = colPositions[i-1] + colWidths[i-1];
                     }
-            
+        
                     // Draw table header
                     pdf.setFont('helvetica', 'bold');
                     pdf.setFontSize(9);
@@ -2040,11 +2039,11 @@
                     pdf.text('Rate', colPositions[3], yPosition);
                     pdf.text('Amount', colPositions[4], yPosition);
                     yPosition += 6;
-            
+        
                     // Draw header line
                     pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
                     yPosition += 2;
-            
+        
                     // Table rows
                     pdf.setFont('helvetica', 'normal');
                     let subtotal = 0;
@@ -2054,7 +2053,7 @@
                         
                         const amount = parseFloat(item.hours) * parseFloat(item.rate);
                         subtotal += amount;
-            
+        
                         // Truncate service name if too long
                         const serviceName = item.serviceItem.length > 40 ? 
                             item.serviceItem.substring(0, 40) + '...' : item.serviceItem;
@@ -2066,80 +2065,65 @@
                         pdf.text(`$${amount.toFixed(2)}`, colPositions[4], yPosition);
                         yPosition += 6;
                     });
-            
+        
                     yPosition += 10;
-            
+        
                     // Totals
                     checkPageBreak(25);
                     
                     const taxRate = parseFloat(invoiceData.taxRate) || 0;
                     const taxAmount = subtotal * (taxRate / 100);
                     const grandTotal = subtotal + taxAmount;
-            
+        
                     const totalsX = pageWidth - margin - 60;
                     pdf.setFont('helvetica', 'normal');
                     pdf.text('Subtotal:', totalsX, yPosition);
                     pdf.text(`$${subtotal.toFixed(2)}`, totalsX + 35, yPosition);
                     yPosition += 6;
-            
+        
                     if (taxRate > 0) {
                         pdf.text(`Tax (${taxRate}%):`, totalsX, yPosition);
                         pdf.text(`$${taxAmount.toFixed(2)}`, totalsX + 35, yPosition);
                         yPosition += 6;
                     }
-            
+        
                     pdf.line(totalsX, yPosition - 2, pageWidth - margin, yPosition - 2);
                     yPosition += 4;
-            
+        
                     pdf.setFont('helvetica', 'bold');
                     pdf.text('Total (USD):', totalsX, yPosition);
                     pdf.text(`$${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
-            
+        
                     // Convert PDF to base64
-                    submitBtn.textContent = '⏳ Submitting...';
-                    const pdfOutput = pdf.output('datauristring');
-                    const base64PDF = pdfOutput.split(',')[1]; // Remove data:application/pdf;base64, prefix
-                    
-                    // Add PDF to invoice data
-                    invoiceData.pdfBase64 = base64PDF;
-            
+                    const pdfBase64 = pdf.output('datauristring').split(',')[1];
+                    invoiceData.pdfBase64 = pdfBase64;
+        
                     // Submit to Google Apps Script
-                        const response = await fetch(GOOGLE_SCRIPT_URL, {
-                            method: 'POST',
-                            body: JSON.stringify(invoiceData)
-                        });
-            
-                        const result = await response.json();
-            
-                        if (result.result === 'success') {
-                            showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
-                        } else if (result.error === 'duplicate') {
-                            showStatusMessage(result.message, 'error');
-                            return; // Don't throw, just return
-                        } else {
-                            throw new Error(result.message || 'Submission failed');
-                        }
-                        
-                    } catch (error) {
-                        console.error('AP submission error:', error);
-                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
-                        
-                    } catch (error) {
-                        console.error('AP submission error:', error);
-                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
-                        
-                        // Check if this is a duplicate invoice error
-                        if (error.message && error.message.includes('Duplicate Invoice Found')) {
-                            showStatusMessage(error.message, 'error');
-                        } else {
-                            showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
-                        }
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(invoiceData)
+                    });
+        
+                    const result = await response.json();
+        
+                    if (result.result === 'success') {
+                        showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
+                    } else if (result.error === 'duplicate') {
+                        showStatusMessage(result.message, 'error');
+                    } else {
+                        throw new Error(result.message || 'Submission failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('AP submission error:', error);
+                    showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
                 } finally {
                     const submitBtn = document.getElementById('submit-to-ap-btn');
                     submitBtn.disabled = false;
                     submitBtn.textContent = '📧 Submit to AP';
                 }
             };
+            
             // Event Listeners
             addItemBtn.addEventListener('click', () => createItemRow());
             downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
