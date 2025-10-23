@@ -1545,29 +1545,20 @@
 
             // Silent submission to Google Sheets
             const submitToSpreadsheet = async (invoiceData) => {
-                try {
-                    // Submit silently in the background
-                    const response = await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(invoiceData)
-                    });
-                    const result = await response.json();
-                    
-                    // Check for duplicate error
-                    if (result.result === 'error' && result.error === 'duplicate') {
-                        throw new Error(result.message);
-                    }
-                    
-                    // Silent success - no user notification
-                    console.log('Data submitted successfully');
-                } catch (error) {
-                    // Re-throw duplicate errors to be caught by PDF generation
-                    if (error.message.includes('Duplicate Invoice Found')) {
-                        throw error;
-                    }
-                    // Silent failure for other errors - log but don't show to user
-                    console.error('Background submission error:', error);
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(invoiceData)
+                });
+                
+                const result = await response.json();
+                
+                // Check for duplicate error and throw it
+                if (result.result === 'error' && result.error === 'duplicate') {
+                    throw new Error(result.message);
                 }
+                
+                // Silent success - no user notification
+                console.log('Data submitted successfully');
             };
 
             // Generate PDF and submit data
@@ -2124,11 +2115,14 @@
                             showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
                         } else if (result.error === 'duplicate') {
                             showStatusMessage(result.message, 'error');
-                            // Don't throw error, just show message and return
-                            return;
+                            return; // Don't throw, just return
                         } else {
                             throw new Error(result.message || 'Submission failed');
                         }
+                        
+                    } catch (error) {
+                        console.error('AP submission error:', error);
+                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
                         
                     } catch (error) {
                         console.error('AP submission error:', error);
