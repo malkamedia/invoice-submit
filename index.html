@@ -1584,6 +1584,25 @@
                         }
                         return; // Stop execution if validation fails
                     }
+                    // ADD THIS NEW DUPLICATE CHECK BLOCK:
+                    // Check for duplicates before generating PDF
+                    const checkData = {
+                        action: 'checkDuplicate',
+                        vendorName: document.getElementById('vendor-name').value,
+                        invoiceNumber: document.getElementById('invoice-number').value
+                    };
+                    
+                    const checkResponse = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(checkData)
+                    });
+                    
+                    const checkResult = await checkResponse.json();
+                    
+                    if (checkResult.error === 'duplicate') {
+                        showStatusMessage(checkResult.message, 'error');
+                        return;
+                    }
 
                     showStatusMessage('Generating PDF...', 'info');
                     downloadPdfBtn.disabled = true;
