@@ -923,7 +923,7 @@
         </a>
     </div>
 
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
             const itemsContainer = document.getElementById('invoice-items');
             const addItemBtn = document.getElementById('add-item-btn');
@@ -933,11 +933,15 @@
             const downloadPdfBtn = document.getElementById('download-pdf-btn');
             const statusMessage = document.getElementById('status-message');
 
-// Configuration
+            // Configuration
             const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdzeRW1tzmW2HCosIiFp80KJ7FYeV7V1jyFETDl_17PO7bKKu0ywKzfXHXlASsk3Tt/exec';
             
             // Global variable to store vendor data temporarily
             let storedVendorData = null;
+            
+            // Track the current session's downloaded invoice
+            let currentSessionInvoice = null;
+            let hasSubmittedToAP = false;
 
             // Initialize default dates
             const initializeDates = () => {
@@ -968,102 +972,61 @@
                 // Only save if vendor name exists
                 if (vendorInfo.name) {
                     try {
-                        localStorage.setItem('malkaInvoiceVendorInfo', JSON.stringify(vendorInfo));
-                        console.log('Vendor information saved to browser');
+                        localStorage.setItem('malkaVendorInfo', JSON.stringify(vendorInfo));
+                        console.log('Vendor info saved successfully');
                     } catch (e) {
-                        console.error('Could not save to localStorage:', e);
+                        console.error('Error saving vendor info:', e);
                     }
                 }
             };
 
             const loadVendorInfo = () => {
                 try {
-                    const savedInfo = localStorage.getItem('malkaInvoiceVendorInfo');
-                    
-                    if (savedInfo) {
-                        const vendor = JSON.parse(savedInfo);
-                        const lastSave = vendor.lastSaved;
+                    const saved = localStorage.getItem('malkaVendorInfo');
+                    if (saved) {
+                        const vendorInfo = JSON.parse(saved);
                         
-                        if (lastSave) {
-                            const daysSinceLastSave = (new Date() - new Date(lastSave)) / (1000 * 60 * 60 * 24);
-                            
-                            // Only offer to load if saved within last 90 days
-                            if (daysSinceLastSave < 90) {
-                                storedVendorData = vendor;
-                                
-                                // Show welcome notification
-                                const notification = document.getElementById('welcome-notification');
-                                const greeting = document.getElementById('vendor-greeting');
-                                
-                                if (vendor.name) {
-                                    greeting.textContent = ', ' + vendor.name.split(' ')[0]; // Use first name
-                                }
-                                
-                                notification.classList.add('show');
-                                
-                                // Auto-hide after 10 seconds if no action taken
-                                setTimeout(() => {
-                                    notification.classList.remove('show');
-                                }, 10000);
-                            } else {
-                                // Data is too old, clear it
-                                localStorage.removeItem('malkaInvoiceVendorInfo');
-                            }
+                        // Auto-populate vendor fields
+                        document.getElementById('vendor-name').value = vendorInfo.name || '';
+                        document.getElementById('vendor-llc').value = vendorInfo.llc || '';
+                        document.getElementById('vendor-address').value = vendorInfo.address || '';
+                        document.getElementById('vendor-city').value = vendorInfo.city || '';
+                        document.getElementById('vendor-email').value = vendorInfo.email || '';
+                        
+                        // Auto-populate client info if it was saved
+                        if (vendorInfo.hiringManager) {
+                            document.getElementById('hiring-manager').value = vendorInfo.hiringManager;
                         }
+                        if (vendorInfo.hiringManagerEmail) {
+                            document.getElementById('hiring-manager-email').value = vendorInfo.hiringManagerEmail;
+                        }
+                        if (vendorInfo.costCenter) {
+                            document.getElementById('cost-center').value = vendorInfo.costCenter;
+                        }
+                        
+                        console.log('Vendor info loaded from previous session');
                     }
                 } catch (e) {
-                    console.error('Could not load from localStorage:', e);
+                    console.error('Error loading vendor info:', e);
                 }
             };
 
-            // Function to accept stored data (called from notification)
-            window.acceptStoredData = function() {
-                if (storedVendorData) {
-                    document.getElementById('vendor-name').value = storedVendorData.name || '';
-                    document.getElementById('vendor-llc').value = storedVendorData.llc || '';
-                    document.getElementById('vendor-address').value = storedVendorData.address || '';
-                    document.getElementById('vendor-city').value = storedVendorData.city || '';
-                    document.getElementById('vendor-email').value = storedVendorData.email || '';
-                    
-                    // Only fill client fields if they haven't been changed from defaults
-                    if (document.getElementById('hiring-manager').value === '') {
-                        document.getElementById('hiring-manager').value = storedVendorData.hiringManager || '';
-                    }
-                    if (document.getElementById('hiring-manager-email').value === '') {
-                        document.getElementById('hiring-manager-email').value = storedVendorData.hiringManagerEmail || '';
-                    }
-                    if (document.getElementById('cost-center').value === '') {
-                        document.getElementById('cost-center').value = storedVendorData.costCenter || '';
-                    }
-                    
-                    showStatusMessage('Your information has been loaded successfully!', 'success');
-                }
-                document.getElementById('welcome-notification').classList.remove('show');
-            };
-
-            // Function to decline stored data (called from notification)
-            window.declineStoredData = function() {
-                document.getElementById('welcome-notification').classList.remove('show');
-                storedVendorData = null;
-            };
-
-            // Clear stored data function
             const clearStoredData = () => {
-                if (confirm('This will clear your saved vendor information from this browser. Continue?')) {
+                if (confirm('Are you sure you want to clear all saved vendor information?')) {
                     try {
-                        localStorage.removeItem('malkaInvoiceVendorInfo');
-                        storedVendorData = null;
-                        showStatusMessage('Your saved information has been cleared.', 'info');
+                        localStorage.removeItem('malkaVendorInfo');
                         
-                        // Clear the form
+                        // Clear the form fields
                         document.getElementById('vendor-name').value = '';
                         document.getElementById('vendor-llc').value = '';
                         document.getElementById('vendor-address').value = '';
                         document.getElementById('vendor-city').value = '';
                         document.getElementById('vendor-email').value = '';
+                        
+                        showStatusMessage('Saved vendor information cleared successfully', 'success');
                     } catch (e) {
-                        console.error('Could not clear localStorage:', e);
-                        showStatusMessage('Error clearing saved information.', 'error');
+                        console.error('Error clearing vendor info:', e);
+                        showStatusMessage('Error clearing saved information', 'error');
                     }
                 }
             };
@@ -1529,7 +1492,7 @@
                 
                 setTimeout(() => {
                     statusMessage.classList.remove('show');
-                }, 8000);
+                }, 10000);  // 10 seconds
             };
 
             // Duplicate row function
@@ -1569,7 +1532,7 @@
             // Generate PDF and submit data
             const generatePDFAndSubmit = async () => {
                 try {
-                    // ADD VALIDATION CHECK HERE
+                    // Validate form
                     const validationErrors = validateForm();
                     
                     if (validationErrors.length > 0) {
@@ -1582,25 +1545,6 @@
                             firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             firstError.focus();
                         }
-                        return; // Stop execution if validation fails
-                    }
-                    // ADD THIS NEW DUPLICATE CHECK BLOCK:
-                    // Check for duplicates before generating PDF
-                    const checkData = {
-                        action: 'checkDuplicate',
-                        vendorEmail: document.getElementById('vendor-email').value,
-                        invoiceNumber: document.getElementById('invoice-number').value
-                    };
-                    
-                    const checkResponse = await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(checkData)
-                    });
-                    
-                    const checkResult = await checkResponse.json();
-                    
-                    if (checkResult.error === 'duplicate') {
-                        showStatusMessage(checkResult.message, 'error');
                         return;
                     }
 
@@ -1613,7 +1557,7 @@
                         throw new Error('PDF library not loaded. Please refresh the page and try again.');
                     }
 
-                    // Prepare invoice data
+                    // Prepare invoice data for submission
                     const invoiceData = {
                         timestamp: new Date().toISOString(),
                         costCenter: document.getElementById('cost-center').value,
@@ -1635,7 +1579,6 @@
                         taxRate: taxRateEl.value,
                         grandTotal: grandTotalEl.textContent,
                         items: [],
-                        // Add session flag for download updates
                         action: 'downloadPDF',
                         isCurrentSession: currentSessionInvoice && 
                                          currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
@@ -1655,8 +1598,15 @@
                         }
                     });
 
-                    // Submit to spreadsheet and check for duplicates BEFORE generating PDF
-                       await submitToSpreadsheet(invoiceData);
+                    // Submit to spreadsheet
+                    await submitToSpreadsheet(invoiceData);
+                    
+                    // Track this invoice for the session
+                    currentSessionInvoice = {
+                        vendorEmail: invoiceData.vendorEmail,
+                        invoiceNumber: invoiceData.invoiceNumber
+                    };
+                    hasSubmittedToAP = false; // Reset the AP submission flag
                     
                     // Save vendor info to local storage for next time
                     saveVendorInfo();
@@ -1855,7 +1805,7 @@
                     
                     const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
 
-                // Save the PDF
+                    // Save the PDF
                     pdf.save(filename);
                     showStatusMessage('Invoice PDF downloaded successfully!', 'success');
                     
@@ -1890,6 +1840,14 @@
                         }
                         return;
                     }
+                    
+                    // Check if already submitted to AP in this session
+                    if (hasSubmittedToAP && currentSessionInvoice &&
+                        currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
+                        currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value) {
+                        showStatusMessage('This invoice has already been submitted to AP in this session. Email already sent.', 'error');
+                        return;
+                    }
         
                     showStatusMessage('Submitting invoice to AP...', 'info');
                     const submitBtn = document.getElementById('submit-to-ap-btn');
@@ -1898,7 +1856,7 @@
         
                     // Prepare invoice data
                     const invoiceData = {
-                        action: 'submitToAP', // Special flag for AP submission
+                        action: 'submitToAP',
                         timestamp: new Date().toISOString(),
                         costCenter: document.getElementById('cost-center').value,
                         vendorName: document.getElementById('vendor-name').value,
@@ -1918,7 +1876,11 @@
                         subtotal: subtotalEl.textContent,
                         taxRate: taxRateEl.value,
                         grandTotal: grandTotalEl.textContent,
-                        items: []
+                        items: [],
+                        isCurrentSession: currentSessionInvoice && 
+                                         currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
+                                         currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value,
+                        hasSubmittedToAP: hasSubmittedToAP
                     };
         
                     document.querySelectorAll('.table-row').forEach(row => {
@@ -2136,6 +2098,7 @@
                     const result = await response.json();
         
                     if (result.result === 'success') {
+                        hasSubmittedToAP = true; // Mark as submitted to AP
                         showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
                     } else if (result.error === 'duplicate') {
                         showStatusMessage(result.message, 'error');
