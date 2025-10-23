@@ -1557,6 +1557,11 @@
                     throw new Error(result.message);
                 }
                 
+                // Check for any other errors
+                if (result.result === 'error') {
+                    throw new Error(result.error || 'Submission failed');
+                }
+                
                 // Silent success - no user notification
                 console.log('Data submitted successfully');
             };
