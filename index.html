@@ -1547,14 +1547,25 @@
             const submitToSpreadsheet = async (invoiceData) => {
                 try {
                     // Submit silently in the background
-                    await fetch(GOOGLE_SCRIPT_URL, {
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
                         method: 'POST',
                         body: JSON.stringify(invoiceData)
                     });
+                    const result = await response.json();
+                    
+                    // Check for duplicate error
+                    if (result.result === 'error' && result.error === 'duplicate') {
+                        throw new Error(result.message);
+                    }
+                    
                     // Silent success - no user notification
                     console.log('Data submitted successfully');
                 } catch (error) {
-                    // Silent failure - log but don't show to user
+                    // Re-throw duplicate errors to be caught by PDF generation
+                    if (error.message.includes('Duplicate Invoice Found')) {
+                        throw error;
+                    }
+                    // Silent failure for other errors - log but don't show to user
                     console.error('Background submission error:', error);
                 }
             };
@@ -1824,13 +1835,19 @@
                     
                     const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
 
-                    // Save the PDF
+                // Save the PDF
                     pdf.save(filename);
                     showStatusMessage('Invoice PDF downloaded successfully!', 'success');
                     
                 } catch (error) {
                     console.error('PDF generation error:', error);
-                    showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
+                    
+                    // Check if this is a duplicate invoice error
+                    if (error.message && error.message.includes('Duplicate Invoice Found')) {
+                        showStatusMessage(error.message, 'error');
+                    } else {
+                        showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
+                    }
                 } finally {
                     downloadPdfBtn.disabled = false;
                     downloadPdfBtn.textContent = '📥 Download Invoice PDF';
@@ -2104,14 +2121,22 @@
                     const result = await response.json();
             
                     if (result.result === 'success') {
-                        showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
-                    } else {
-                        throw new Error(result.error || 'Submission failed');
-                    }
-                    
-                } catch (error) {
-                    console.error('AP submission error:', error);
-                    showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
+                            showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
+                        } else if (result.error === 'duplicate') {
+                            showStatusMessage(result.message, 'error');
+                        } else {
+                            throw new Error(result.message || 'Submission failed');
+                        }
+                        
+                    } catch (error) {
+                        console.error('AP submission error:', error);
+                        
+                        // Check if this is a duplicate invoice error
+                        if (error.message && error.message.includes('Duplicate Invoice Found')) {
+                            showStatusMessage(error.message, 'error');
+                        } else {
+                            showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
+                        }
                 } finally {
                     const submitBtn = document.getElementById('submit-to-ap-btn');
                     submitBtn.disabled = false;
