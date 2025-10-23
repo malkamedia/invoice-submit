@@ -986,29 +986,59 @@
                     if (saved) {
                         const vendorInfo = JSON.parse(saved);
                         
-                        // Auto-populate vendor fields
-                        document.getElementById('vendor-name').value = vendorInfo.name || '';
-                        document.getElementById('vendor-llc').value = vendorInfo.llc || '';
-                        document.getElementById('vendor-address').value = vendorInfo.address || '';
-                        document.getElementById('vendor-city').value = vendorInfo.city || '';
-                        document.getElementById('vendor-email').value = vendorInfo.email || '';
-                        
-                        // Auto-populate client info if it was saved
-                        if (vendorInfo.hiringManager) {
-                            document.getElementById('hiring-manager').value = vendorInfo.hiringManager;
-                        }
-                        if (vendorInfo.hiringManagerEmail) {
-                            document.getElementById('hiring-manager-email').value = vendorInfo.hiringManagerEmail;
-                        }
-                        if (vendorInfo.costCenter) {
-                            document.getElementById('cost-center').value = vendorInfo.costCenter;
-                        }
-                        
-                        console.log('Vendor info loaded from previous session');
+                        // Show the welcome notification instead of auto-filling
+                        showWelcomeNotification(vendorInfo);
                     }
                 } catch (e) {
                     console.error('Error loading vendor info:', e);
                 }
+            };
+            
+            const showWelcomeNotification = (vendorInfo) => {
+                const notification = document.getElementById('welcome-notification');
+                const greeting = document.getElementById('vendor-greeting');
+                
+                if (vendorInfo.name) {
+                    greeting.textContent = `, ${vendorInfo.name}`;
+                }
+                
+                notification.style.display = 'block';
+                
+                // Store vendor info temporarily for accept/decline
+                window.tempVendorInfo = vendorInfo;
+            };
+            
+            // Make functions globally accessible for onclick handlers
+            window.acceptStoredData = () => {
+                const vendorInfo = window.tempVendorInfo;
+                if (vendorInfo) {
+                    document.getElementById('vendor-name').value = vendorInfo.name || '';
+                    document.getElementById('vendor-llc').value = vendorInfo.llc || '';
+                    document.getElementById('vendor-address').value = vendorInfo.address || '';
+                    document.getElementById('vendor-city').value = vendorInfo.city || '';
+                    document.getElementById('vendor-email').value = vendorInfo.email || '';
+                    
+                    if (vendorInfo.hiringManager) {
+                        document.getElementById('hiring-manager').value = vendorInfo.hiringManager;
+                    }
+                    if (vendorInfo.hiringManagerEmail) {
+                        document.getElementById('hiring-manager-email').value = vendorInfo.hiringManagerEmail;
+                    }
+                    if (vendorInfo.costCenter) {
+                        document.getElementById('cost-center').value = vendorInfo.costCenter;
+                    }
+                    
+                    console.log('Vendor info loaded from previous session');
+                }
+                document.getElementById('welcome-notification').style.display = 'none';
+                window.tempVendorInfo = null;
+            };
+            
+            window.declineStoredData = () => {
+                document.getElementById('welcome-notification').style.display = 'none';
+                window.tempVendorInfo = null;
+                // Optionally clear stored data
+                // localStorage.removeItem('malkaVendorInfo');
             };
 
             const clearStoredData = () => {
