@@ -1613,7 +1613,7 @@
                         throw new Error('PDF library not loaded. Please refresh the page and try again.');
                     }
 
-                    // Prepare invoice data for submission
+                    // Prepare invoice data
                     const invoiceData = {
                         timestamp: new Date().toISOString(),
                         costCenter: document.getElementById('cost-center').value,
@@ -1634,7 +1634,12 @@
                         subtotal: subtotalEl.textContent,
                         taxRate: taxRateEl.value,
                         grandTotal: grandTotalEl.textContent,
-                        items: []
+                        items: [],
+                        // Add session flag for download updates
+                        action: 'downloadPDF',
+                        isCurrentSession: currentSessionInvoice && 
+                                         currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
+                                         currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value
                     };
 
                     document.querySelectorAll('.table-row').forEach(row => {
@@ -1651,7 +1656,7 @@
                     });
 
                     // Submit to spreadsheet and check for duplicates BEFORE generating PDF
-                    // await submitToSpreadsheet(invoiceData);
+                       await submitToSpreadsheet(invoiceData);
                     
                     // Save vendor info to local storage for next time
                     saveVendorInfo();
