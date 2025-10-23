@@ -1635,8 +1635,8 @@
                         }
                     });
 
-                    // Submit to spreadsheet silently in the background
-                    submitToSpreadsheet(invoiceData);
+                    // Submit to spreadsheet and check for duplicates BEFORE generating PDF
+                    await submitToSpreadsheet(invoiceData);
                     
                     // Save vendor info to local storage for next time
                     saveVendorInfo();
@@ -2113,23 +2113,26 @@
                     invoiceData.pdfBase64 = base64PDF;
             
                     // Submit to Google Apps Script
-                    const response = await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(invoiceData)
-                    });
+                        const response = await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(invoiceData)
+                        });
             
-                    const result = await response.json();
+                        const result = await response.json();
             
-                    if (result.result === 'success') {
+                        if (result.result === 'success') {
                             showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
                         } else if (result.error === 'duplicate') {
                             showStatusMessage(result.message, 'error');
+                            // Don't throw error, just show message and return
+                            return;
                         } else {
                             throw new Error(result.message || 'Submission failed');
                         }
                         
                     } catch (error) {
                         console.error('AP submission error:', error);
+                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
                         
                         // Check if this is a duplicate invoice error
                         if (error.message && error.message.includes('Duplicate Invoice Found')) {
