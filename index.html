@@ -815,6 +815,9 @@
                 <button type="button" id="download-pdf-btn" class="btn btn-success">
                     📥 Download Invoice PDF
                 </button>
+                <button type="button" id="submit-to-ap-btn" class="btn btn-primary">
+                    📧 Submit to AP
+                </button>
             </div>
             
             <div id="status-message" class="status-message"></div>
@@ -1620,10 +1623,95 @@
                 }
             };
 
+            // Submit to AP via server-side email with PDF
+                const submitToAP = async () => {
+                    try {
+                        const validationErrors = validateForm();
+                        
+                        if (validationErrors.length > 0) {
+                            const errorMessage = 'Please complete the following required fields:\n• ' + validationErrors.join('\n• ');
+                            showStatusMessage(errorMessage, 'error');
+                            
+                            const firstError = document.querySelector('.validation-error');
+                            if (firstError) {
+                                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                firstError.focus();
+                            }
+                            return;
+                        }
+            
+                        showStatusMessage('Submitting invoice to AP...', 'info');
+                        const submitBtn = document.getElementById('submit-to-ap-btn');
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = '⏳ Submitting...';
+            
+                        // Prepare invoice data
+                        const invoiceData = {
+                            action: 'submitToAP', // Special flag for AP submission
+                            timestamp: new Date().toISOString(),
+                            costCenter: document.getElementById('cost-center').value,
+                            vendorName: document.getElementById('vendor-name').value,
+                            vendorLlc: document.getElementById('vendor-llc').value || '',
+                            vendorAddress: document.getElementById('vendor-address').value,
+                            vendorCity: document.getElementById('vendor-city').value,
+                            vendorEmail: document.getElementById('vendor-email').value,
+                            clientName: document.getElementById('client-name').value,
+                            hiringManager: document.getElementById('hiring-manager').value,
+                            hiringManagerEmail: document.getElementById('hiring-manager-email').value,
+                            invoiceNumber: document.getElementById('invoice-number').value,
+                            invoiceDate: document.getElementById('invoice-date').value,
+                            payTerms: document.getElementById('pay-terms').value,
+                            poNumber: document.getElementById('po-number').value || '',
+                            serviceStart: document.getElementById('service-start').value,
+                            serviceEnd: document.getElementById('service-end').value,
+                            subtotal: subtotalEl.textContent,
+                            taxRate: taxRateEl.value,
+                            grandTotal: grandTotalEl.textContent,
+                            items: []
+                        };
+            
+                        document.querySelectorAll('.table-row').forEach(row => {
+                            const serviceItem = row.querySelector('.service-item').value;
+                            if (serviceItem) {
+                                invoiceData.items.push({
+                                    serviceItem: serviceItem,
+                                    jobCode: row.querySelector('.job-code').value,
+                                    hours: row.querySelector('.quantity').value,
+                                    rate: row.querySelector('.rate').value,
+                                    amount: row.querySelector('.amount-cell').textContent
+                                });
+                            }
+                        });
+            
+                        // Submit to Google Apps Script
+                        const response = await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(invoiceData)
+                        });
+            
+                        const result = await response.json();
+            
+                        if (result.result === 'success') {
+                            showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
+                        } else {
+                            throw new Error(result.error || 'Submission failed');
+                        }
+                        
+                    } catch (error) {
+                        console.error('AP submission error:', error);
+                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
+                    } finally {
+                        const submitBtn = document.getElementById('submit-to-ap-btn');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '📧 Submit to AP';
+                    }
+                };
+
             // Event Listeners
-            addItemBtn.addEventListener('click', () => createItemRow());
-            downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
-            taxRateEl.addEventListener('input', calculateTotals);
+                addItemBtn.addEventListener('click', () => createItemRow());
+                downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
+                document.getElementById('submit-to-ap-btn').addEventListener('click', submitToAP);
+                taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
             itemsContainer.addEventListener('click', (e) => {
