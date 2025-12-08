@@ -1,4 +1,4 @@
-# Malka Media Group - Vendor Invoice Submission Portal
+# Vendor Invoice Generation Tool
 
 A professional web-based invoice submission system for Malka Media Group vendors. This portal allows vendors to create, download, and submit invoices directly to the AP (Accounts Payable) team with automatic data logging to Google Sheets.
 
