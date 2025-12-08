@@ -1,0 +1,196 @@
+function doPost(e) {
+  try {
+    const data = JSON.parse(e.postData.contents);
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    
+    // Check if this is an AP submission request with PDF
+    if (data.action === 'submitToAP') {
+      return handleAPSubmission(data, sheet);
+    }
+    
+    // Generate unique ID with multiple strategies for guaranteed uniqueness
+    const timestamp = new Date();
+    
+    const dateStr = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}`;
+    const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
+    const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
+    
+    // Start building the row with timestamp and unique ID
+    const row = [
+      timestamp.toISOString(), // Timestamp in column A
+      uniqueId,                 // Unique ID in column B
+      data.costCenter || '',
+      getCostCenterName(data.costCenter), // Helper function to get full name
+      data.vendorName || '',
+      data.vendorLlc || '',
+      data.vendorAddress || '',
+      data.vendorCity || '',
+      data.vendorEmail || '',
+      data.clientName || '',
+      data.hiringManager || '',
+      data.hiringManagerEmail || '',
+      data.invoiceNumber || '',
+      data.invoiceDate || '',
+      data.payTerms || '',
+      data.poNumber || '',
+      data.serviceStart || '',
+      data.serviceEnd || '',
+      data.subtotal || '',
+      data.taxRate || '',
+      data.grandTotal || ''
+    ];
+    
+    // Add line items (up to 25 items with 5 fields each)
+    for (let i = 0; i < 25; i++) {
+      if (data.items && data.items[i]) {
+        row.push(
+          data.items[i].serviceItem || '',
+          data.items[i].jobCode || '',
+          data.items[i].hours || '',
+          data.items[i].rate || '',
+          data.items[i].amount || ''
+        );
+      } else {
+        // Add empty cells if no item
+        row.push('', '', '', '', '');
+      }
+    }
+    
+    // Append the row to the sheet
+    sheet.appendRow(row);
+    
+    // Return success response with the generated unique ID
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        'result': 'success',
+        'uniqueId': uniqueId,
+        'timestamp': timestamp.toISOString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch(error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        'result': 'error',
+        'error': error.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function handleAPSubmission(data, sheet) {
+  try {
+    // Generate unique ID and save to spreadsheet (same as regular submission)
+    const timestamp = new Date();
+    const dateStr = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}`;
+    const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
+    const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
+    const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
+    
+    const row = [
+      timestamp.toISOString(),
+      uniqueId,
+      data.costCenter || '',
+      getCostCenterName(data.costCenter),
+      data.vendorName || '',
+      data.vendorLlc || '',
+      data.vendorAddress || '',
+      data.vendorCity || '',
+      data.vendorEmail || '',
+      data.clientName || '',
+      data.hiringManager || '',
+      data.hiringManagerEmail || '',
+      data.invoiceNumber || '',
+      data.invoiceDate || '',
+      data.payTerms || '',
+      data.poNumber || '',
+      data.serviceStart || '',
+      data.serviceEnd || '',
+      data.subtotal || '',
+      data.taxRate || '',
+      data.grandTotal || ''
+    ];
+    
+    for (let i = 0; i < 25; i++) {
+      if (data.items && data.items[i]) {
+        row.push(
+          data.items[i].serviceItem || '',
+          data.items[i].jobCode || '',
+          data.items[i].hours || '',
+          data.items[i].rate || '',
+          data.items[i].amount || ''
+        );
+      } else {
+        row.push('', '', '', '', '');
+      }
+    }
+    
+    sheet.appendRow(row);
+    
+    // Get PDF from base64 data sent from client
+    if (!data.pdfBase64) {
+      throw new Error('PDF data missing');
+    }
+    
+    // Decode base64 PDF
+    const pdfBytes = Utilities.base64Decode(data.pdfBase64);
+    const pdfBlob = Utilities.newBlob(pdfBytes, 'application/pdf');
+    
+    // Send email
+    const subject = `${data.vendorName} Invoice Submission: ${data.invoiceNumber}`;
+    const emailBody = `Hello AP Team,
+
+Please find attached invoice ${data.invoiceNumber} from ${data.vendorName}.
+
+Invoice Details:
+- Invoice Number: ${data.invoiceNumber}
+- Invoice Date: ${data.invoiceDate}
+- Amount: ${data.grandTotal}
+- Payment Terms: ${data.payTerms}
+- Service Period: ${data.serviceStart} to ${data.serviceEnd}
+- Cost Center: ${getCostCenterName(data.costCenter)}
+
+Thank you,
+${data.vendorName}`;
+    
+    const fileName = `${data.vendorName.replace(/[^a-zA-Z0-9]/g, '_')}_${data.invoiceNumber}_${data.invoiceDate}.pdf`;
+    
+    MailApp.sendEmail({
+      to: 'mike@malkamedia.com',
+      subject: subject,
+      body: emailBody,
+      attachments: [pdfBlob.setName(fileName)],
+      cc: data.vendorEmail
+    });
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        'result': 'success',
+        'message': 'Invoice submitted to AP successfully',
+        'uniqueId': uniqueId
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+      
+  } catch(error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        'result': 'error',
+        'error': error.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function getCostCenterName(code) {
+  const costCenters = {
+    '40677': '40677 - ML Malka Post Production',
+    '40382': '40382 - ML Malka Production',
+    '40405': '40405 - ML Malka Media Operations',
+    '40383': '40383 - ML Malka Project Management',
+    '40425': '40425 - ML Malka Animation',
+    '40473': '40473 - ML Malka Creative Services',
+    '40386': '40386 - ML Malka Account Management'
+  };
+  return costCenters[code] || code;
+}
