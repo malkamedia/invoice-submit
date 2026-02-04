@@ -39,7 +39,7 @@ function doPost(e) {
       data.subtotal || '',
       data.taxRate || '',
       data.grandTotal || ''
-    ];
+    ]; 
     
     // Add line items (up to 25 items with 5 fields each)
     for (let i = 0; i < 25; i++) {
