@@ -3,23 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Vendor Invoice Form - Malka</title>
+    <title>Business Invoice Form - Malka</title>
 
     <!-- Favicons from Malka Media CDN -->
     <link href="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/63f61f41d22be93246c43215_favicon-32x32.png" rel="shortcut icon" type="image/x-icon"/>
     <link href="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/63f61fc551b1bc5c6514d0a1_android-chrome-192x192.png" rel="apple-touch-icon"/>
 
     <!-- Open Graph / Social Media Preview -->
-    <meta property="og:title" content="Malka - Vendor Invoice Form">
-    <meta property="og:description" content="Professional invoice submission form for Malka Media Group LLC vendors">
+    <meta property="og:title" content="Malka - Business Invoice Form">
+    <meta property="og:description" content="Professional invoice submission form for Malka Media Group LLC businesses">
     <meta property="og:image" content="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/6568d4822f24643cd4dee8d4_m-box-shadows.png">
     <meta property="og:url" content="https://invoice.malkamedia.com">
     <meta property="og:type" content="website">
     
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Malka - Vendor Invoice Form">
-    <meta name="twitter:description" content="Professional invoice submission form for Malka Media Group LLC vendors">
+    <meta name="twitter:title" content="Malka - Business Invoice Form">
+    <meta name="twitter:description" content="Professional invoice submission form for Malka Media Group LLC businesses">
     <meta name="twitter:image" content="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/6568d4822f24643cd4dee8d4_m-box-shadows.png">
         
     <!-- External Libraries for PDF Generation -->
@@ -114,11 +114,11 @@
             color: var(--color-gray-500);
         }
 
-        .vendor-info {
+        .business-info {
             text-align: right;
         }
 
-        .vendor-info h3 {
+        .business-info h3 {
             font-size: var(--font-size-xs);
             font-weight: 600;
             color: var(--color-gray-700);
@@ -127,7 +127,7 @@
             letter-spacing: 0.05em;
         }
 
-        .vendor-fields {
+        .business-fields {
             display: flex;
             flex-direction: column;
             gap: var(--space-2);
@@ -628,7 +628,7 @@
                 grid-template-columns: 1fr;
             }
             
-            .vendor-info {
+            .business-info {
                 text-align: left;
             }
             
@@ -660,18 +660,18 @@
                     <p>Professional Services Invoice</p>
                 </div>
                 
-                <div class="vendor-info">
-                    <h3 class="required-field">Vendor Information</h3>
-                    <div class="vendor-fields">
-                        <input id="vendor-name" type="text" placeholder="Vendor Name" 
+                <div class="business-info">
+                    <h3 class="required-field">Business Information</h3>
+                    <div class="business-fields">
+                        <input id="business-name" type="text" placeholder="Business Name" 
                                class="form-input" required>
-                        <input id="vendor-llc" type="text" placeholder="Business or LLC (if applicable)" 
+                        <input id="business-llc" type="text" placeholder="Business or LLC (if applicable)" 
                                class="form-input">
-                        <input id="vendor-address" type="text" placeholder="Vendor Address" 
+                        <input id="business-address" type="text" placeholder="Business Address" 
                                class="form-input">
-                        <input id="vendor-city" type="text" placeholder="City, State, ZIP" 
+                        <input id="business-city" type="text" placeholder="City, State, ZIP" 
                                class="form-input">
-                        <input id="vendor-email" type="email" placeholder="vendor.email@example.com" 
+                        <input id="business-email" type="email" placeholder="business.email@example.com" 
                                class="form-input" required>
                     </div>
                 </div>
@@ -861,8 +861,8 @@
             const validateForm = () => {
                 const errors = [];
                 const requiredFields = [
-                    { id: 'vendor-name', label: 'Vendor Name' },
-                    { id: 'vendor-email', label: 'Vendor Email' },
+                    { id: 'business-name', label: 'Business Name' },
+                    { id: 'business-email', label: 'Business Email' },
                     { id: 'client-name', label: 'Client Name' },
                     { id: 'hiring-manager', label: 'Hiring Manager' },
                     { id: 'hiring-manager-email', label: 'Hiring Manager Email' },
@@ -886,13 +886,13 @@
                 });
 
                 // Validate email formats
-                const vendorEmail = document.getElementById('vendor-email').value;
+                const businessEmail = document.getElementById('business-email').value;
                 const hiringEmail = document.getElementById('hiring-manager-email').value;
                 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
                 
-                if (vendorEmail && !emailRegex.test(vendorEmail)) {
-                    errors.push('Vendor Email (invalid format)');
-                    document.getElementById('vendor-email').classList.add('validation-error');
+                if (businessEmail && !emailRegex.test(businessEmail)) {
+                    errors.push('Business Email (invalid format)');
+                    document.getElementById('business-email').classList.add('validation-error');
                 }
                 
                 if (hiringEmail && !emailRegex.test(hiringEmail)) {
@@ -1380,11 +1380,11 @@
                     const invoiceData = {
                         timestamp: new Date().toISOString(),
                         costCenter: document.getElementById('cost-center').value,
-                        vendorName: document.getElementById('vendor-name').value,
-                        vendorLlc: document.getElementById('vendor-llc').value || '',
-                        vendorAddress: document.getElementById('vendor-address').value,
-                        vendorCity: document.getElementById('vendor-city').value,
-                        vendorEmail: document.getElementById('vendor-email').value,
+                        businessName: document.getElementById('business-name').value,
+                        businessLlc: document.getElementById('business-llc').value || '',
+                        businessAddress: document.getElementById('business-address').value,
+                        businessCity: document.getElementById('business-city').value,
+                        businessEmail: document.getElementById('business-email').value,
                         clientName: document.getElementById('client-name').value,
                         hiringManager: document.getElementById('hiring-manager').value,
                         hiringManagerEmail: document.getElementById('hiring-manager-email').value,
@@ -1454,28 +1454,28 @@
                     pdf.text('Professional Services Invoice', margin, yPosition);
                     yPosition += 15;
 
-                    // Vendor and Client Info
+                    // Business and Client Info
                     const leftCol = margin;
                     const rightCol = pageWidth / 2 + 10;
                     
-                    // Vendor Info
+                    // Business Info
                     let leftY = yPosition;
                     pdf.setFont('helvetica', 'bold');
-                    pdf.text('Vendor Information:', leftCol, leftY);
+                    pdf.text('Business Information:', leftCol, leftY);
                     leftY += 6;
                     pdf.setFont('helvetica', 'normal');
                     
-                    const vendorName = invoiceData.vendorName || 'N/A';
-                    const vendorAddress = invoiceData.vendorAddress || 'N/A';
-                    const vendorLlc = invoiceData.vendorLlc || '';
-                    const vendorCity = invoiceData.vendorCity || 'N/A';
-                    const vendorEmail = invoiceData.vendorEmail || 'N/A';
+                    const businessName = invoiceData.businessName || 'N/A';
+                    const businessAddress = invoiceData.businessAddress || 'N/A';
+                    const businessLlc = invoiceData.businessLlc || '';
+                    const businessCity = invoiceData.businessCity || 'N/A';
+                    const businessEmail = invoiceData.businessEmail || 'N/A';
                     
-                    leftY = addText(vendorName, leftCol, leftY);
-                    if (vendorLlc) leftY = addText(`${vendorLlc}`, leftCol, leftY);
-                    leftY = addText(vendorAddress, leftCol, leftY);
-                    leftY = addText(vendorCity, leftCol, leftY);
-                    leftY = addText(vendorEmail, leftCol, leftY);
+                    leftY = addText(businessName, leftCol, leftY);
+                    if (businessLlc) leftY = addText(`${businessLlc}`, leftCol, leftY);
+                    leftY = addText(businessAddress, leftCol, leftY);
+                    leftY = addText(businessCity, leftCol, leftY);
+                    leftY = addText(businessEmail, leftCol, leftY);
 
                     // Invoice Details
                     let rightY = yPosition;
@@ -1601,14 +1601,14 @@
                     pdf.text(`$${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
 
                     // Generate filename
-                    const vendorNameClean = vendorName
+                    const businessNameClean = businessName
                         .replace(/[^a-zA-Z0-9\s]/g, '')
                         .replace(/\s+/g, '_')
                         .substring(0, 20) || 'Invoice';
                     const invoiceNumberClean = invoiceData.invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'INV-001';
                     const invoiceDateClean = invoiceData.invoiceDate || new Date().toISOString().split('T')[0];
                     
-                    const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
+                    const filename = `${businessNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
 
                     // Save the PDF
                     pdf.save(filename);
@@ -1650,11 +1650,11 @@
                             action: 'submitToAP', // Special flag for AP submission
                             timestamp: new Date().toISOString(),
                             costCenter: document.getElementById('cost-center').value,
-                            vendorName: document.getElementById('vendor-name').value,
-                            vendorLlc: document.getElementById('vendor-llc').value || '',
-                            vendorAddress: document.getElementById('vendor-address').value,
-                            vendorCity: document.getElementById('vendor-city').value,
-                            vendorEmail: document.getElementById('vendor-email').value,
+                            businessName: document.getElementById('business-name').value,
+                            businessLlc: document.getElementById('business-llc').value || '',
+                            businessAddress: document.getElementById('business-address').value,
+                            businessCity: document.getElementById('business-city').value,
+                            businessEmail: document.getElementById('business-email').value,
                             clientName: document.getElementById('client-name').value,
                             hiringManager: document.getElementById('hiring-manager').value,
                             hiringManagerEmail: document.getElementById('hiring-manager-email').value,

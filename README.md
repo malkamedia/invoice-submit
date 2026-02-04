@@ -1,12 +1,12 @@
-# Vendor Invoice Generation Tool
+# Business Invoice Generation Tool
 
-A professional web-based invoice submission system for Malka Media Group vendors. This portal allows vendors to create, download, and submit invoices directly to the AP (Accounts Payable) team with automatic data logging to Google Sheets.
+A professional web-based invoice submission system for Malka Media Group businesses. This portal allows businesses to create, download, and submit invoices directly to the AP (Accounts Payable) team with automatic data logging to Google Sheets.
 
 **Live Site:** https://invoice.malkamedia.com
 
 ## Overview
 
-This invoice system streamlines the vendor payment process by:
+This invoice system streamlines the business payment process by:
 - Providing a clean, professional interface for invoice creation
 - Automatically validating all required fields and job codes
 - Generating PDF invoices for download
@@ -32,7 +32,7 @@ This invoice system streamlines the vendor payment process by:
 ### Data Management
 - **Real-time validation** of all required fields
 - **Automatic timestamping** of submissions
-- **Unique invoice ID generation** for tracking
+- **Unique ID generation** for tracking
 - **Silent background submission** to Google Sheets on PDF download
 - **Email delivery** with PDF attachment when submitting to AP
 
@@ -74,35 +74,41 @@ This invoice system streamlines the vendor payment process by:
 
 1. **Create a new Google Sheet** for invoice data logging
 
-2. **Set up column headers** (Row 1):
+2. **Create a sheet tab named `WorkflowTesting`**
+
+3. **Set up column headers** (Row 1) in the `WorkflowTesting` tab:
    - A: Timestamp
-   - B: Unique ID
+   - B: ID
    - C: Cost Center Code
    - D: Cost Center Name
-   - E: Vendor Name
-   - F: Vendor LLC/Business Name
-   - G: Vendor Address
-   - H: Vendor City/State/ZIP
-   - I: Vendor Email
+   - E: Business Name
+   - F: Business LLC/Business Name
+   - G: Business Address
+   - H: Business City/State/ZIP
+   - I: Business Email
    - J: Client Name
    - K: Hiring Manager
    - L: Hiring Manager Email
-   - M: Invoice Number
-   - N: Invoice Date
+   - M: Number
+   - N: Date
    - O: Payment Terms
    - P: PO Number
-   - Q: Service Start Date
-   - R: Service End Date
-   - S: Subtotal
-   - T: Tax Rate
-   - U: Grand Total
-   - V-AZ: Line items (Service, Job Code, Hours, Rate, Amount) × 25 items
+   - Q: Invoice Service Start Date
+   - R: Invoice Service End Date
+   - S: Invoice Subtotal
+   - T: Invoice Tax Rate
+   - U: Invoice Grand Total
+   - V: Line Item Service
+   - W: Line Item Job Code
+   - X: Line Item Hours/Qty
+   - Y: Line Item Rate
+   - Z: Line Item Amount
 
-3. **Format the sheet:**
+4. **Format the sheet:**
    - Freeze the header row
    - Apply filters to columns
    - Set appropriate column widths
-   - Format currency columns (S, U, and Amount columns)
+   - Format currency columns (S, U, and Z columns)
 
 ### Google Apps Script Setup
 
@@ -113,19 +119,7 @@ This invoice system streamlines the vendor payment process by:
    - Copy contents from `google-script-withapsubmit.txt`
    - Paste into the script editor
 
-3. **Update email recipient:**
-```javascript
-   // Line ~120 in handleAPSubmission function
-   MailApp.sendEmail({
-     to: 'your-ap-email@malkamedia.com',  // Change this
-     subject: subject,
-     body: emailBody,
-     attachments: [pdfBlob.setName(fileName)],
-     cc: data.vendorEmail
-   });
-```
-
-4. **Deploy as Web App:**
+3. **Deploy as Web App:**
    - Click Deploy > New deployment
    - Select type: Web app
    - Execute as: Me
@@ -133,7 +127,7 @@ This invoice system streamlines the vendor payment process by:
    - Click Deploy
    - Copy the web app URL
 
-5. **Update frontend with Script URL:**
+4. **Update frontend with Script URL:**
 ```javascript
    // In index.html, around line 970
    const GOOGLE_SCRIPT_URL = 'YOUR_SCRIPT_URL_HERE';
@@ -208,12 +202,12 @@ MailApp.sendEmail({
 
 ## Usage Guide
 
-### For Vendors
+### For Businesses
 
 1. **Access the form:** Navigate to https://invoice.malkamedia.com
 
-2. **Fill in vendor information:**
-   - Your name (required)
+2. **Fill in business information:**
+   - Business name (required)
    - Business/LLC name (optional)
    - Address and city/state/ZIP
    - Email address (required)
@@ -253,7 +247,7 @@ MailApp.sendEmail({
 
 **View submissions:**
 - Open the connected Google Sheet
-- All submissions appear with timestamp and unique ID
+- All submissions appear with timestamp and ID
 - Use filters to search/sort invoices
 - Export data for accounting software if needed
 
@@ -272,8 +266,8 @@ MailApp.sendEmail({
 The form enforces these validation rules:
 
 ### Required Fields
-- Vendor name
-- Vendor email (must be valid format)
+- Business name
+- Business email (must be valid format)
 - Client name
 - Hiring manager name and email
 - Cost center selection
@@ -410,7 +404,7 @@ Potential features to consider:
 - [ ] Invoice templates/presets
 - [ ] Multi-currency support
 - [ ] Automatic job code lookup/suggestion
-- [ ] Vendor portal for viewing submission history
+- [ ] Business portal for viewing submission history
 - [ ] Integration with accounting software (QuickBooks, etc.)
 - [ ] Bulk upload from CSV
 - [ ] Digital signature capability
@@ -428,7 +422,7 @@ For issues or questions:
 
 Proprietary - © 2024 Malka Media Group LLC. All rights reserved.
 
-This system is for internal use by Malka Media Group vendors only.
+This system is for internal use by Malka Media Group businesses only.
 
 ---
 
