@@ -1,7 +1,10 @@
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Workflow Testing');
+    if (!sheet) {
+      throw new Error('Sheet tab "Workflow Testing" not found');
+    }
     
     // Check if this is an AP submission request with PDF
     if (data.action === 'submitToAP') {
@@ -14,57 +17,50 @@ function doPost(e) {
     const dateStr = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}`;
     const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
-    const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
+    const invoiceId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
     
-    // Start building the row with timestamp and unique ID
-    const row = [
-      timestamp.toISOString(), // Timestamp in column A
-      uniqueId,                 // Unique ID in column B
-      data.costCenter || '',
-      getCostCenterName(data.costCenter), // Helper function to get full name
-      data.vendorName || '',
-      data.vendorLlc || '',
-      data.vendorAddress || '',
-      data.vendorCity || '',
-      data.vendorEmail || '',
-      data.clientName || '',
-      data.hiringManager || '',
-      data.hiringManagerEmail || '',
-      data.invoiceNumber || '',
-      data.invoiceDate || '',
-      data.payTerms || '',
-      data.poNumber || '',
-      data.serviceStart || '',
-      data.serviceEnd || '',
-      data.subtotal || '',
-      data.taxRate || '',
-      data.grandTotal || ''
-    ]; 
-    
-    // Add line items (up to 25 items with 5 fields each)
-    for (let i = 0; i < 25; i++) {
-      if (data.items && data.items[i]) {
-        row.push(
-          data.items[i].serviceItem || '',
-          data.items[i].jobCode || '',
-          data.items[i].hours || '',
-          data.items[i].rate || '',
-          data.items[i].amount || ''
-        );
-      } else {
-        // Add empty cells if no item
-        row.push('', '', '', '', '');
-      }
+    // Append one row per line item (long format)
+    if (data.items && data.items.length > 0) {
+      data.items.forEach((item, index) => {
+        const row = [
+          timestamp.toISOString(), // Form Submission Timestamp in column A
+          invoiceId,                // Invoice ID in column B
+          `LINE-${invoiceId}-${index + 1}-${Utilities.getUuid().substring(0, 6).toUpperCase()}`, // Invoice Line Item ID in column C
+          data.costCenter || '',
+          getCostCenterName(data.costCenter), // Helper function to get full name
+          data.vendorName || '',
+          data.vendorLlc || '',
+          data.vendorAddress || '',
+          data.vendorCity || '',
+          data.vendorEmail || '',
+          data.clientName || '',
+          data.hiringManager || '',
+          data.hiringManagerEmail || '',
+          data.invoiceNumber || '',
+          data.invoiceDate || '',
+          data.payTerms || '',
+          data.poNumber || '',
+          data.serviceStart || '',
+          data.serviceEnd || '',
+          data.subtotal || '',
+          data.taxRate || '',
+          data.grandTotal || '',
+          item.serviceItem || '',
+          item.jobCode || '',
+          item.hours || '',
+          item.rate || '',
+          item.amount || ''
+        ];
+        
+        sheet.appendRow(row);
+      });
     }
-    
-    // Append the row to the sheet
-    sheet.appendRow(row);
     
     // Return success response with the generated unique ID
     return ContentService
       .createTextOutput(JSON.stringify({
         'result': 'success',
-        'uniqueId': uniqueId,
+        'invoiceId': invoiceId,
         'timestamp': timestamp.toISOString()
       }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -81,52 +77,51 @@ function doPost(e) {
 
 function handleAPSubmission(data, sheet) {
   try {
+    if (!sheet) {
+      throw new Error('Sheet tab "Workflow Testing" not found');
+    }
     // Generate unique ID and save to spreadsheet (same as regular submission)
     const timestamp = new Date();
     const dateStr = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}`;
     const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
-    const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
+    const invoiceId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
     
-    const row = [
-      timestamp.toISOString(),
-      uniqueId,
-      data.costCenter || '',
-      getCostCenterName(data.costCenter),
-      data.vendorName || '',
-      data.vendorLlc || '',
-      data.vendorAddress || '',
-      data.vendorCity || '',
-      data.vendorEmail || '',
-      data.clientName || '',
-      data.hiringManager || '',
-      data.hiringManagerEmail || '',
-      data.invoiceNumber || '',
-      data.invoiceDate || '',
-      data.payTerms || '',
-      data.poNumber || '',
-      data.serviceStart || '',
-      data.serviceEnd || '',
-      data.subtotal || '',
-      data.taxRate || '',
-      data.grandTotal || ''
-    ];
-    
-    for (let i = 0; i < 25; i++) {
-      if (data.items && data.items[i]) {
-        row.push(
-          data.items[i].serviceItem || '',
-          data.items[i].jobCode || '',
-          data.items[i].hours || '',
-          data.items[i].rate || '',
-          data.items[i].amount || ''
-        );
-      } else {
-        row.push('', '', '', '', '');
-      }
+    if (data.items && data.items.length > 0) {
+      data.items.forEach((item, index) => {
+        const row = [
+          timestamp.toISOString(),
+          invoiceId,
+          `LINE-${invoiceId}-${index + 1}-${Utilities.getUuid().substring(0, 6).toUpperCase()}`,
+          data.costCenter || '',
+          getCostCenterName(data.costCenter),
+          data.vendorName || '',
+          data.vendorLlc || '',
+          data.vendorAddress || '',
+          data.vendorCity || '',
+          data.vendorEmail || '',
+          data.clientName || '',
+          data.hiringManager || '',
+          data.hiringManagerEmail || '',
+          data.invoiceNumber || '',
+          data.invoiceDate || '',
+          data.payTerms || '',
+          data.poNumber || '',
+          data.serviceStart || '',
+          data.serviceEnd || '',
+          data.subtotal || '',
+          data.taxRate || '',
+          data.grandTotal || '',
+          item.serviceItem || '',
+          item.jobCode || '',
+          item.hours || '',
+          item.rate || '',
+          item.amount || ''
+        ];
+        
+        sheet.appendRow(row);
+      });
     }
-    
-    sheet.appendRow(row);
     
     // Get PDF from base64 data sent from client
     if (!data.pdfBase64) {
@@ -168,7 +163,7 @@ ${data.vendorName}`;
       .createTextOutput(JSON.stringify({
         'result': 'success',
         'message': 'Invoice submitted to AP successfully',
-        'uniqueId': uniqueId
+        'invoiceId': invoiceId
       }))
       .setMimeType(ContentService.MimeType.JSON);
       
