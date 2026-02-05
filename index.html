@@ -636,9 +636,99 @@
                 flex-direction: column;
             }
         }
+/* Welcome back notification */
+        .welcome-notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            border: 1px solid var(--color-gray-200);
+            border-radius: var(--border-radius-lg);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-md);
+            max-width: 320px;
+            z-index: 1000;
+            display: none;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        .welcome-notification.show {
+            display: block;
+        }
+
+        .welcome-notification * {
+            text-align: left;
+        }
+
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .notification-header {
+            font-weight: 600;
+            color: var(--color-gray-900);
+            margin-bottom: var(--space-2);
+        }
+
+        .notification-buttons {
+            display: flex;
+            gap: var(--space-2);
+            margin-top: var(--space-3);
+        }
+
+        .notification-btn {
+            flex: 1;
+            padding: var(--space-2);
+            border-radius: var(--border-radius);
+            font-size: var(--font-size-sm);
+            font-weight: 500;
+            cursor: pointer;
+            border: 1px solid var(--color-gray-300);
+            transition: all 0.2s ease;
+            text-align: center;
+        }
+
+        .notification-btn-primary {
+            background: var(--color-primary);
+            color: white;
+            border-color: var(--color-primary);
+        }
+
+        .notification-btn-primary:hover {
+            background: var(--color-primary-light);
+        }
+
+        .notification-btn-secondary {
+            background: white;
+            color: var(--color-gray-700);
+        }
+
+        .notification-btn-secondary:hover {
+            background: var(--color-gray-50);
+        }
+
+        #submit-to-ap-btn {
+            display: none !important;
+        }
     </style>
 </head>
 <body>
+    <!-- Welcome back notification -->
+    <div id="welcome-notification" class="welcome-notification">
+        <div class="notification-header">Welcome back<span id="vendor-greeting"></span>!</div>
+        <div style="font-size: 0.875rem; color: #6b7280;">Would you like to use your previously saved information?</div>
+        <div class="notification-buttons">
+            <button type="button" onclick="acceptStoredData()" class="notification-btn notification-btn-primary">Yes, use it</button>
+            <button type="button" onclick="declineStoredData()" class="notification-btn notification-btn-secondary">No thanks</button>
+        </div>
+    </div>
     <div style="max-width: 56rem; margin: 1rem auto 1.5rem auto; padding: 0; text-align: center;">
         <svg viewBox="0 0 984 200" style="width: 180px; height: auto; display: inline-block;">
             <g fill="#1f2937">
@@ -834,7 +924,7 @@
         </a>
     </div>
 
-    <script>
+<script>
         document.addEventListener('DOMContentLoaded', () => {
             const itemsContainer = document.getElementById('invoice-items');
             const addItemBtn = document.getElementById('add-item-btn');
@@ -845,7 +935,14 @@
             const statusMessage = document.getElementById('status-message');
 
             // Configuration
-            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbx8R-GctZTTnby_JuanO9abTJg_XB4lfkUoYwbMnXS1KGRoDa_xi10B32CMAZF-eaeAdw/exec';
+            const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxdzeRW1tzmW2HCosIiFp80KJ7FYeV7V1jyFETDl_17PO7bKKu0ywKzfXHXlASsk3Tt/exec';
+            
+            // Global variable to store vendor data temporarily
+            let storedVendorData = null;
+            
+            // Track the current session's downloaded invoice
+            let currentSessionInvoice = null;
+            let hasSubmittedToAP = false;
 
             // Initialize default dates
             const initializeDates = () => {
@@ -855,6 +952,114 @@
                 document.getElementById('invoice-date').value = isoDate;
                 document.getElementById('service-start').value = isoDate;
                 document.getElementById('service-end').value = isoDate;
+            };
+
+            // Local Storage Functions
+            const saveVendorInfo = () => {
+                const vendorInfo = {
+                    name: document.getElementById('vendor-name').value,
+                    llc: document.getElementById('vendor-llc').value,
+                    address: document.getElementById('vendor-address').value,
+                    city: document.getElementById('vendor-city').value,
+                    email: document.getElementById('vendor-email').value,
+                    // Also save frequently used client info if they've changed it
+                    hiringManager: document.getElementById('hiring-manager').value,
+                    hiringManagerEmail: document.getElementById('hiring-manager-email').value,
+                    costCenter: document.getElementById('cost-center').value,
+                    // Save timestamp
+                    lastSaved: new Date().toISOString()
+                };
+                
+                // Only save if vendor name exists
+                if (vendorInfo.name) {
+                    try {
+                        localStorage.setItem('malkaVendorInfo', JSON.stringify(vendorInfo));
+                        console.log('Vendor info saved successfully');
+                    } catch (e) {
+                        console.error('Error saving vendor info:', e);
+                    }
+                }
+            };
+
+            const loadVendorInfo = () => {
+                try {
+                    const saved = localStorage.getItem('malkaVendorInfo');
+                    if (saved) {
+                        const vendorInfo = JSON.parse(saved);
+                        
+                        // Show the welcome notification instead of auto-filling
+                        showWelcomeNotification(vendorInfo);
+                    }
+                } catch (e) {
+                    console.error('Error loading vendor info:', e);
+                }
+            };
+            
+            const showWelcomeNotification = (vendorInfo) => {
+                const notification = document.getElementById('welcome-notification');
+                const greeting = document.getElementById('vendor-greeting');
+                
+                if (vendorInfo.name) {
+                    greeting.textContent = `, ${vendorInfo.name}`;
+                }
+                
+                notification.style.display = 'block';
+                
+                // Store vendor info temporarily for accept/decline
+                window.tempVendorInfo = vendorInfo;
+            };
+            
+            // Make functions globally accessible for onclick handlers
+            window.acceptStoredData = () => {
+                const vendorInfo = window.tempVendorInfo;
+                if (vendorInfo) {
+                    document.getElementById('vendor-name').value = vendorInfo.name || '';
+                    document.getElementById('vendor-llc').value = vendorInfo.llc || '';
+                    document.getElementById('vendor-address').value = vendorInfo.address || '';
+                    document.getElementById('vendor-city').value = vendorInfo.city || '';
+                    document.getElementById('vendor-email').value = vendorInfo.email || '';
+                    
+                    if (vendorInfo.hiringManager) {
+                        document.getElementById('hiring-manager').value = vendorInfo.hiringManager;
+                    }
+                    if (vendorInfo.hiringManagerEmail) {
+                        document.getElementById('hiring-manager-email').value = vendorInfo.hiringManagerEmail;
+                    }
+                    if (vendorInfo.costCenter) {
+                        document.getElementById('cost-center').value = vendorInfo.costCenter;
+                    }
+                    
+                    console.log('Vendor info loaded from previous session');
+                }
+                document.getElementById('welcome-notification').style.display = 'none';
+                window.tempVendorInfo = null;
+            };
+            
+            window.declineStoredData = () => {
+                document.getElementById('welcome-notification').style.display = 'none';
+                window.tempVendorInfo = null;
+                // Optionally clear stored data
+                // localStorage.removeItem('malkaVendorInfo');
+            };
+
+            const clearStoredData = () => {
+                if (confirm('Are you sure you want to clear all saved vendor information?')) {
+                    try {
+                        localStorage.removeItem('malkaVendorInfo');
+                        
+                        // Clear the form fields
+                        document.getElementById('vendor-name').value = '';
+                        document.getElementById('vendor-llc').value = '';
+                        document.getElementById('vendor-address').value = '';
+                        document.getElementById('vendor-city').value = '';
+                        document.getElementById('vendor-email').value = '';
+                        
+                        showStatusMessage('Saved vendor information cleared successfully', 'success');
+                    } catch (e) {
+                        console.error('Error clearing vendor info:', e);
+                        showStatusMessage('Error clearing saved information', 'error');
+                    }
+                }
             };
 
             // Validate required fields
@@ -1318,7 +1523,7 @@
                 
                 setTimeout(() => {
                     statusMessage.classList.remove('show');
-                }, 5000);
+                }, 10000);  // 10 seconds
             };
 
             // Duplicate row function
@@ -1334,24 +1539,31 @@
 
             // Silent submission to Google Sheets
             const submitToSpreadsheet = async (invoiceData) => {
-                try {
-                    // Submit silently in the background
-                    await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(invoiceData)
-                    });
-                    // Silent success - no user notification
-                    console.log('Data submitted successfully');
-                } catch (error) {
-                    // Silent failure - log but don't show to user
-                    console.error('Background submission error:', error);
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify(invoiceData)
+                });
+                
+                const result = await response.json();
+                
+                // Check for duplicate error and throw it
+                if (result.result === 'error' && result.error === 'duplicate') {
+                    throw new Error(result.message);
                 }
+                
+                // Check for any other errors
+                if (result.result === 'error') {
+                    throw new Error(result.error || 'Submission failed');
+                }
+                
+                // Silent success - no user notification
+                console.log('Data submitted successfully');
             };
 
             // Generate PDF and submit data
             const generatePDFAndSubmit = async () => {
                 try {
-                    // ADD VALIDATION CHECK HERE
+                    // Validate form
                     const validationErrors = validateForm();
                     
                     if (validationErrors.length > 0) {
@@ -1364,7 +1576,7 @@
                             firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
                             firstError.focus();
                         }
-                        return; // Stop execution if validation fails
+                        return;
                     }
 
                     showStatusMessage('Generating PDF...', 'info');
@@ -1397,7 +1609,11 @@
                         subtotal: subtotalEl.textContent,
                         taxRate: taxRateEl.value,
                         grandTotal: grandTotalEl.textContent,
-                        items: []
+                        items: [],
+                        action: 'downloadPDF',
+                        isCurrentSession: currentSessionInvoice && 
+                                         currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
+                                         currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value
                     };
 
                     document.querySelectorAll('.table-row').forEach(row => {
@@ -1413,8 +1629,18 @@
                         }
                     });
 
-                    // Submit to spreadsheet silently in the background
-                    submitToSpreadsheet(invoiceData);
+                    // Submit to spreadsheet
+                    await submitToSpreadsheet(invoiceData);
+                    
+                    // Track this invoice for the session
+                    currentSessionInvoice = {
+                        vendorEmail: invoiceData.vendorEmail,
+                        invoiceNumber: invoiceData.invoiceNumber
+                    };
+                    hasSubmittedToAP = false; // Reset the AP submission flag
+                    
+                    // Save vendor info to local storage for next time
+                    saveVendorInfo();
 
                     const { jsPDF } = window.jspdf;
                     const pdf = new jsPDF('p', 'mm', 'a4');
@@ -1616,7 +1842,13 @@
                     
                 } catch (error) {
                     console.error('PDF generation error:', error);
-                    showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
+                    
+                    // Check if this is a duplicate invoice error
+                    if (error.message && error.message.includes('Duplicate Invoice Found')) {
+                        showStatusMessage(error.message, 'error');
+                    } else {
+                        showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
+                    }
                 } finally {
                     downloadPdfBtn.disabled = false;
                     downloadPdfBtn.textContent = '📥 Download Invoice PDF';
@@ -1730,6 +1962,7 @@
 
             // Initialize
             initializeDates();
+            loadVendorInfo(); // Check for saved vendor info
             createItemRow(); // Create initial row
             calculateTotals();
         });
