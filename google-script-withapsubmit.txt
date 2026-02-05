@@ -1,9 +1,9 @@
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Workflow Testing');
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Invoices');
     if (!sheet) {
-      throw new Error('Sheet tab "Workflow Testing" not found');
+      throw new Error('We ran into an issue while generating your invoice PDF. Please contact finops@gendigital.com for assistance.');
     }
     
     // Check if this is an AP submission request with PDF
@@ -78,7 +78,7 @@ function doPost(e) {
 function handleAPSubmission(data, sheet) {
   try {
     if (!sheet) {
-      throw new Error('Sheet tab "Workflow Testing" not found');
+      throw new Error('We ran into an issue while generating your invoice PDF. Please contact finops@gendigital.com for assistance.');
     }
     // Generate unique ID and save to spreadsheet (same as regular submission)
     const timestamp = new Date();
