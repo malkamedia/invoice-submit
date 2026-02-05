@@ -1,7 +1,10 @@
 function doPost(e) {
   try {
     const data = JSON.parse(e.postData.contents);
-    const sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+    const sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('Workflow Testing');
+    if (!sheet) {
+      throw new Error('Sheet tab "Workflow Testing" not found');
+    }
     
     // Check if this is an AP submission request with PDF
     if (data.action === 'submitToAP') {
@@ -14,14 +17,15 @@ function doPost(e) {
     const dateStr = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}`;
     const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
-    const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
+    const invoiceId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
     
     // Append one row per line item (long format)
     if (data.items && data.items.length > 0) {
-      data.items.forEach(item => {
+      data.items.forEach((item, index) => {
         const row = [
-          timestamp.toISOString(), // Timestamp in column A
-          uniqueId,                 // Unique ID in column B
+          timestamp.toISOString(), // Form Submission Timestamp in column A
+          invoiceId,                // Invoice ID in column B
+          `LINE-${invoiceId}-${index + 1}-${Utilities.getUuid().substring(0, 6).toUpperCase()}`, // Invoice Line Item ID in column C
           data.costCenter || '',
           getCostCenterName(data.costCenter), // Helper function to get full name
           data.vendorName || '',
@@ -56,7 +60,7 @@ function doPost(e) {
     return ContentService
       .createTextOutput(JSON.stringify({
         'result': 'success',
-        'uniqueId': uniqueId,
+        'invoiceId': invoiceId,
         'timestamp': timestamp.toISOString()
       }))
       .setMimeType(ContentService.MimeType.JSON);
@@ -73,18 +77,22 @@ function doPost(e) {
 
 function handleAPSubmission(data, sheet) {
   try {
+    if (!sheet) {
+      throw new Error('Sheet tab "Workflow Testing" not found');
+    }
     // Generate unique ID and save to spreadsheet (same as regular submission)
     const timestamp = new Date();
     const dateStr = `${timestamp.getFullYear()}${(timestamp.getMonth() + 1).toString().padStart(2, '0')}${timestamp.getDate().toString().padStart(2, '0')}`;
     const randomNum = Math.floor(Math.random() * 10000).toString().padStart(4, '0');
     const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
-    const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
+    const invoiceId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
     
     if (data.items && data.items.length > 0) {
-      data.items.forEach(item => {
+      data.items.forEach((item, index) => {
         const row = [
           timestamp.toISOString(),
-          uniqueId,
+          invoiceId,
+          `LINE-${invoiceId}-${index + 1}-${Utilities.getUuid().substring(0, 6).toUpperCase()}`,
           data.costCenter || '',
           getCostCenterName(data.costCenter),
           data.vendorName || '',
@@ -155,7 +163,7 @@ ${data.vendorName}`;
       .createTextOutput(JSON.stringify({
         'result': 'success',
         'message': 'Invoice submitted to AP successfully',
-        'uniqueId': uniqueId
+        'invoiceId': invoiceId
       }))
       .setMimeType(ContentService.MimeType.JSON);
       

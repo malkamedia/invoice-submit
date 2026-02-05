@@ -74,39 +74,42 @@ This invoice system streamlines the vendor payment process by:
 
 1. **Create a new Google Sheet** for invoice data logging
 
-2. **Set up column headers** (Row 1):
-   - A: Timestamp
-   - B: Unique ID
-   - C: Cost Center Code
-   - D: Cost Center Name
-   - E: Vendor Name
-   - F: Vendor LLC/Business Name
-   - G: Vendor Address
-   - H: Vendor City/State/ZIP
-   - I: Vendor Email
-   - J: Client Name
-   - K: Hiring Manager
-   - L: Hiring Manager Email
-   - M: Invoice Number
-   - N: Invoice Date
-   - O: Payment Terms
-   - P: PO Number
-   - Q: Invoice Service Start Date
-   - R: Invoice Service End Date
-   - S: Invoice Subtotal
-   - T: Invoice Tax Rate
-   - U: Invoice Grand Total
-   - V: Line Item Service
-   - W: Line Item Job Code
-   - X: Line Item Hours/Qty
-   - Y: Line Item Rate
-   - Z: Line Item Amount
+2. **Create a sheet tab named `Workflow Testing`**
 
-3. **Format the sheet:**
+3. **Set up column headers** (Row 1) in the `Workflow Testing` tab:
+   - A: Form Submission Timestamp
+   - B: Invoice ID
+   - C: Invoice Line Item ID
+   - D: Cost Center Code
+   - E: Cost Center Name
+   - F: Vendor Name
+   - G: Vendor LLC/Business Name
+   - H: Vendor Address
+   - I: Vendor City/State/ZIP
+   - J: Vendor Email
+   - K: Client Name
+   - L: Hiring Manager
+   - M: Hiring Manager Email
+   - N: Invoice Number
+   - O: Invoice Date
+   - P: Payment Terms
+   - Q: PO Number
+   - R: Invoice Service Start Date
+   - S: Invoice Service End Date
+   - T: Invoice Subtotal
+   - U: Invoice Tax Rate
+   - V: Invoice Grand Total
+   - W: Line Item Service
+   - X: Line Item Job Code
+   - Y: Line Item Hours/Qty
+   - Z: Line Item Rate
+   - AA: Line Item Amount
+
+4. **Format the sheet:**
    - Freeze the header row
    - Apply filters to columns
    - Set appropriate column widths
-   - Format currency columns (S, U, and Z columns)
+   - Format currency columns (T, V, and AA columns)
 
 ### Google Apps Script Setup
 
