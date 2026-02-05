@@ -91,18 +91,22 @@ This invoice system streamlines the vendor payment process by:
    - N: Invoice Date
    - O: Payment Terms
    - P: PO Number
-   - Q: Service Start Date
-   - R: Service End Date
-   - S: Subtotal
-   - T: Tax Rate
-   - U: Grand Total
-   - V-AZ: Line items (Service, Job Code, Hours, Rate, Amount) × 25 items
+   - Q: Invoice Service Start Date
+   - R: Invoice Service End Date
+   - S: Invoice Subtotal
+   - T: Invoice Tax Rate
+   - U: Invoice Grand Total
+   - V: Line Item Service
+   - W: Line Item Job Code
+   - X: Line Item Hours/Qty
+   - Y: Line Item Rate
+   - Z: Line Item Amount
 
 3. **Format the sheet:**
    - Freeze the header row
    - Apply filters to columns
    - Set appropriate column widths
-   - Format currency columns (S, U, and Amount columns)
+   - Format currency columns (S, U, and Z columns)
 
 ### Google Apps Script Setup
 

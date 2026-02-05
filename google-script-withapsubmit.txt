@@ -16,49 +16,41 @@ function doPost(e) {
     const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
     const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
     
-    // Start building the row with timestamp and unique ID
-    const row = [
-      timestamp.toISOString(), // Timestamp in column A
-      uniqueId,                 // Unique ID in column B
-      data.costCenter || '',
-      getCostCenterName(data.costCenter), // Helper function to get full name
-      data.vendorName || '',
-      data.vendorLlc || '',
-      data.vendorAddress || '',
-      data.vendorCity || '',
-      data.vendorEmail || '',
-      data.clientName || '',
-      data.hiringManager || '',
-      data.hiringManagerEmail || '',
-      data.invoiceNumber || '',
-      data.invoiceDate || '',
-      data.payTerms || '',
-      data.poNumber || '',
-      data.serviceStart || '',
-      data.serviceEnd || '',
-      data.subtotal || '',
-      data.taxRate || '',
-      data.grandTotal || ''
-    ]; 
-    
-    // Add line items (up to 25 items with 5 fields each)
-    for (let i = 0; i < 25; i++) {
-      if (data.items && data.items[i]) {
-        row.push(
-          data.items[i].serviceItem || '',
-          data.items[i].jobCode || '',
-          data.items[i].hours || '',
-          data.items[i].rate || '',
-          data.items[i].amount || ''
-        );
-      } else {
-        // Add empty cells if no item
-        row.push('', '', '', '', '');
-      }
+    // Append one row per line item (long format)
+    if (data.items && data.items.length > 0) {
+      data.items.forEach(item => {
+        const row = [
+          timestamp.toISOString(), // Timestamp in column A
+          uniqueId,                 // Unique ID in column B
+          data.costCenter || '',
+          getCostCenterName(data.costCenter), // Helper function to get full name
+          data.vendorName || '',
+          data.vendorLlc || '',
+          data.vendorAddress || '',
+          data.vendorCity || '',
+          data.vendorEmail || '',
+          data.clientName || '',
+          data.hiringManager || '',
+          data.hiringManagerEmail || '',
+          data.invoiceNumber || '',
+          data.invoiceDate || '',
+          data.payTerms || '',
+          data.poNumber || '',
+          data.serviceStart || '',
+          data.serviceEnd || '',
+          data.subtotal || '',
+          data.taxRate || '',
+          data.grandTotal || '',
+          item.serviceItem || '',
+          item.jobCode || '',
+          item.hours || '',
+          item.rate || '',
+          item.amount || ''
+        ];
+        
+        sheet.appendRow(row);
+      });
     }
-    
-    // Append the row to the sheet
-    sheet.appendRow(row);
     
     // Return success response with the generated unique ID
     return ContentService
@@ -88,45 +80,40 @@ function handleAPSubmission(data, sheet) {
     const uuidSuffix = Utilities.getUuid().substring(0, 4).toUpperCase();
     const uniqueId = `INV-${dateStr}-${randomNum}-${uuidSuffix}`;
     
-    const row = [
-      timestamp.toISOString(),
-      uniqueId,
-      data.costCenter || '',
-      getCostCenterName(data.costCenter),
-      data.vendorName || '',
-      data.vendorLlc || '',
-      data.vendorAddress || '',
-      data.vendorCity || '',
-      data.vendorEmail || '',
-      data.clientName || '',
-      data.hiringManager || '',
-      data.hiringManagerEmail || '',
-      data.invoiceNumber || '',
-      data.invoiceDate || '',
-      data.payTerms || '',
-      data.poNumber || '',
-      data.serviceStart || '',
-      data.serviceEnd || '',
-      data.subtotal || '',
-      data.taxRate || '',
-      data.grandTotal || ''
-    ];
-    
-    for (let i = 0; i < 25; i++) {
-      if (data.items && data.items[i]) {
-        row.push(
-          data.items[i].serviceItem || '',
-          data.items[i].jobCode || '',
-          data.items[i].hours || '',
-          data.items[i].rate || '',
-          data.items[i].amount || ''
-        );
-      } else {
-        row.push('', '', '', '', '');
-      }
+    if (data.items && data.items.length > 0) {
+      data.items.forEach(item => {
+        const row = [
+          timestamp.toISOString(),
+          uniqueId,
+          data.costCenter || '',
+          getCostCenterName(data.costCenter),
+          data.vendorName || '',
+          data.vendorLlc || '',
+          data.vendorAddress || '',
+          data.vendorCity || '',
+          data.vendorEmail || '',
+          data.clientName || '',
+          data.hiringManager || '',
+          data.hiringManagerEmail || '',
+          data.invoiceNumber || '',
+          data.invoiceDate || '',
+          data.payTerms || '',
+          data.poNumber || '',
+          data.serviceStart || '',
+          data.serviceEnd || '',
+          data.subtotal || '',
+          data.taxRate || '',
+          data.grandTotal || '',
+          item.serviceItem || '',
+          item.jobCode || '',
+          item.hours || '',
+          item.rate || '',
+          item.amount || ''
+        ];
+        
+        sheet.appendRow(row);
+      });
     }
-    
-    sheet.appendRow(row);
     
     // Get PDF from base64 data sent from client
     if (!data.pdfBase64) {
