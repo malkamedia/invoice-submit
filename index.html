@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Malka - Vendor Invoice Form</title>
+    <title>Vendor Invoice Form - Malka</title>
 
     <!-- Favicons from Malka Media CDN -->
     <link href="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/63f61f41d22be93246c43215_favicon-32x32.png" rel="shortcut icon" type="image/x-icon"/>
@@ -11,7 +11,7 @@
 
     <!-- Open Graph / Social Media Preview -->
     <meta property="og:title" content="Malka - Vendor Invoice Form">
-    <meta property="og:description" content="Professional services invoice submission form for Malka Media Group LLC vendors">
+    <meta property="og:description" content="Professional invoice submission form for Malka Media Group LLC vendors">
     <meta property="og:image" content="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/6568d4822f24643cd4dee8d4_m-box-shadows.png">
     <meta property="og:url" content="https://invoice.malkamedia.com">
     <meta property="og:type" content="website">
@@ -19,9 +19,9 @@
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Malka - Vendor Invoice Form">
-    <meta name="twitter:description" content="Professional services invoice generation tool for Malka Media Group LLC vendors">
+    <meta name="twitter:description" content="Professional invoice submission form for Malka Media Group LLC vendors">
     <meta name="twitter:image" content="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/6568d4822f24643cd4dee8d4_m-box-shadows.png">
-
+        
     <!-- External Libraries for PDF Generation -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
@@ -907,9 +907,6 @@
                 </button>
                 <button type="button" id="submit-to-ap-btn" class="btn btn-primary">
                     📧 Submit to AP
-                </button>
-                <button type="button" id="clear-data-btn" class="btn" style="background: #f3f4f6; color: #6b7280; border: 1px solid #d1d5db;">
-                    🗑️ Clear Saved Info
                 </button>
             </div>
             
@@ -1859,303 +1856,94 @@
             };
 
             // Submit to AP via server-side email with PDF
-            const submitToAP = async () => {
-                try {
-                    const validationErrors = validateForm();
-                    
-                    if (validationErrors.length > 0) {
-                        const errorMessage = 'Please complete the following required fields:\n• ' + validationErrors.join('\n• ');
-                        showStatusMessage(errorMessage, 'error');
+                const submitToAP = async () => {
+                    try {
+                        const validationErrors = validateForm();
                         
-                        const firstError = document.querySelector('.validation-error');
-                        if (firstError) {
-                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                            firstError.focus();
+                        if (validationErrors.length > 0) {
+                            const errorMessage = 'Please complete the following required fields:\n• ' + validationErrors.join('\n• ');
+                            showStatusMessage(errorMessage, 'error');
+                            
+                            const firstError = document.querySelector('.validation-error');
+                            if (firstError) {
+                                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                                firstError.focus();
+                            }
+                            return;
                         }
-                        return;
-                    }
-                    
-                    // Check if already submitted to AP in this session
-                    if (hasSubmittedToAP && currentSessionInvoice &&
-                        currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
-                        currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value) {
-                        showStatusMessage('This invoice has already been submitted to AP in this session. Email already sent.', 'error');
-                        return;
-                    }
-        
-                    showStatusMessage('Submitting invoice to AP...', 'info');
-                    const submitBtn = document.getElementById('submit-to-ap-btn');
-                    submitBtn.disabled = true;
-                    submitBtn.textContent = '⏳ Submitting...';
-        
-                    // Prepare invoice data
-                    const invoiceData = {
-                        action: 'submitToAP',
-                        timestamp: new Date().toISOString(),
-                        costCenter: document.getElementById('cost-center').value,
-                        vendorName: document.getElementById('vendor-name').value,
-                        vendorLlc: document.getElementById('vendor-llc').value || '',
-                        vendorAddress: document.getElementById('vendor-address').value,
-                        vendorCity: document.getElementById('vendor-city').value,
-                        vendorEmail: document.getElementById('vendor-email').value,
-                        clientName: document.getElementById('client-name').value,
-                        hiringManager: document.getElementById('hiring-manager').value,
-                        hiringManagerEmail: document.getElementById('hiring-manager-email').value,
-                        invoiceNumber: document.getElementById('invoice-number').value,
-                        invoiceDate: document.getElementById('invoice-date').value,
-                        payTerms: document.getElementById('pay-terms').value,
-                        poNumber: document.getElementById('po-number').value || '',
-                        serviceStart: document.getElementById('service-start').value,
-                        serviceEnd: document.getElementById('service-end').value,
-                        subtotal: subtotalEl.textContent,
-                        taxRate: taxRateEl.value,
-                        grandTotal: grandTotalEl.textContent,
-                        items: [],
-                        isCurrentSession: currentSessionInvoice && 
-                                         currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
-                                         currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value,
-                        hasSubmittedToAP: hasSubmittedToAP
-                    };
-        
-                    document.querySelectorAll('.table-row').forEach(row => {
-                        const serviceItem = row.querySelector('.service-item').value;
-                        if (serviceItem) {
-                            invoiceData.items.push({
-                                serviceItem: serviceItem,
-                                jobCode: row.querySelector('.job-code').value,
-                                hours: row.querySelector('.quantity').value,
-                                rate: row.querySelector('.rate').value,
-                                amount: row.querySelector('.amount-cell').textContent
-                            });
-                        }
-                    });
-        
-                    // Check if jsPDF is loaded for PDF generation
-                    if (typeof window.jspdf === 'undefined') {
-                        throw new Error('PDF library not loaded. Please refresh the page and try again.');
-                    }
-        
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    
-                    // Set up dimensions
-                    const pageWidth = 210;
-                    const pageHeight = 297;
-                    const margin = 20;
-                    const contentWidth = pageWidth - (margin * 2);
-                    let yPosition = margin;
-                    
-                    // Helper function for text with word wrapping
-                    const addText = (text, x, y, fontSize = 10, style = 'normal') => {
-                        pdf.setFontSize(fontSize);
-                        pdf.setFont('helvetica', style);
-                        const lines = pdf.splitTextToSize(text, contentWidth - x + margin);
-                        pdf.text(lines, x, y);
-                        return y + (lines.length * fontSize * 0.4);
-                    };
-                    
-                    // Helper function to check page breaks
-                    const checkPageBreak = (neededHeight) => {
-                        if (yPosition + neededHeight > pageHeight - margin) {
-                            pdf.addPage();
-                            yPosition = margin;
-                        }
-                    };
-        
-                    // Title
-                    pdf.setFontSize(24);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('INVOICE', margin, yPosition);
-                    yPosition += 10;
-                    
-                    pdf.setFontSize(10);
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text('Professional Services Invoice', margin, yPosition);
-                    yPosition += 15;
-        
-                    // Vendor and Client Info
-                    const leftCol = margin;
-                    const rightCol = pageWidth / 2 + 10;
-                    
-                    // Vendor Info
-                    let leftY = yPosition;
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Vendor Information:', leftCol, leftY);
-                    leftY += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    const vendorName = invoiceData.vendorName || 'N/A';
-                    const vendorAddress = invoiceData.vendorAddress || 'N/A';
-                    const vendorLlc = invoiceData.vendorLlc || '';
-                    const vendorCity = invoiceData.vendorCity || 'N/A';
-                    const vendorEmail = invoiceData.vendorEmail || 'N/A';
-                    
-                    leftY = addText(vendorName, leftCol, leftY);
-                    if (vendorLlc) leftY = addText(`${vendorLlc}`, leftCol, leftY);
-                    leftY = addText(vendorAddress, leftCol, leftY);
-                    leftY = addText(vendorCity, leftCol, leftY);
-                    leftY = addText(vendorEmail, leftCol, leftY);
-        
-                    // Invoice Details
-                    let rightY = yPosition;
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Invoice Details:', rightCol, rightY);
-                    rightY += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    rightY = addText(`Invoice #: ${invoiceData.invoiceNumber || 'N/A'}`, rightCol, rightY);
-                    rightY = addText(`Date: ${invoiceData.invoiceDate || 'N/A'}`, rightCol, rightY);
-                    rightY = addText(`Terms: ${invoiceData.payTerms || 'N/A'}`, rightCol, rightY);
-                    if (invoiceData.poNumber) rightY = addText(`PO#: ${invoiceData.poNumber}`, rightCol, rightY);
-        
-                    yPosition = Math.max(leftY, rightY) + 10;
-        
-                    // Bill To and Cost Center
-                    checkPageBreak(30);
-                    
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Bill To:', leftCol, yPosition);
-                    pdf.text('Cost Center:', rightCol, yPosition);
-                    yPosition += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    leftY = yPosition;
-                    leftY = addText(invoiceData.clientName || 'N/A', leftCol, leftY);
-                    leftY = addText(invoiceData.hiringManager || 'N/A', leftCol, leftY);
-                    leftY = addText(invoiceData.hiringManagerEmail || 'N/A', leftCol, leftY);
-                    
-                    rightY = yPosition;
-                    const costCenterText = document.getElementById('cost-center').selectedOptions[0]?.text || invoiceData.costCenter;
-                    rightY = addText(costCenterText, rightCol, rightY);
-                    
-                    yPosition = Math.max(leftY, rightY) + 10;
-        
-                    // Service Period
-                    checkPageBreak(20);
-                    
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Service Period:', margin, yPosition);
-                    yPosition += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    yPosition = addText(`${invoiceData.serviceStart || 'N/A'} to ${invoiceData.serviceEnd || 'N/A'}`, margin, yPosition);
-                    yPosition += 10;
-        
-                    // Invoice Items Table
-                    checkPageBreak(40);
-                    
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Invoice Items:', margin, yPosition);
-                    yPosition += 8;
-        
-                    // Table headers
-                    const colWidths = [70, 25, 20, 20, 25];
-                    const colPositions = [margin];
-                    for (let i = 1; i < colWidths.length; i++) {
-                        colPositions[i] = colPositions[i-1] + colWidths[i-1];
-                    }
-        
-                    // Draw table header
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.setFontSize(9);
-                    pdf.text('Service/Item', colPositions[0], yPosition);
-                    pdf.text('Job Code', colPositions[1], yPosition);
-                    pdf.text('Hours', colPositions[2], yPosition);
-                    pdf.text('Rate', colPositions[3], yPosition);
-                    pdf.text('Amount', colPositions[4], yPosition);
-                    yPosition += 6;
-        
-                    // Draw header line
-                    pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-                    yPosition += 2;
-        
-                    // Table rows
-                    pdf.setFont('helvetica', 'normal');
-                    let subtotal = 0;
-                    
-                    invoiceData.items.forEach(item => {
-                        checkPageBreak(15);
-                        
-                        const amount = parseFloat(item.hours) * parseFloat(item.rate);
-                        subtotal += amount;
-        
-                        // Truncate service name if too long
-                        const serviceName = item.serviceItem.length > 40 ? 
-                            item.serviceItem.substring(0, 40) + '...' : item.serviceItem;
-                        
-                        pdf.text(serviceName, colPositions[0], yPosition);
-                        pdf.text(item.jobCode || '', colPositions[1], yPosition);
-                        pdf.text(item.hours, colPositions[2], yPosition);
-                        pdf.text(`$${parseFloat(item.rate).toFixed(2)}`, colPositions[3], yPosition);
-                        pdf.text(`$${amount.toFixed(2)}`, colPositions[4], yPosition);
-                        yPosition += 6;
-                    });
-        
-                    yPosition += 10;
-        
-                    // Totals
-                    checkPageBreak(25);
-                    
-                    const taxRate = parseFloat(invoiceData.taxRate) || 0;
-                    const taxAmount = subtotal * (taxRate / 100);
-                    const grandTotal = subtotal + taxAmount;
-        
-                    const totalsX = pageWidth - margin - 60;
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text('Subtotal:', totalsX, yPosition);
-                    pdf.text(`$${subtotal.toFixed(2)}`, totalsX + 35, yPosition);
-                    yPosition += 6;
-        
-                    if (taxRate > 0) {
-                        pdf.text(`Tax (${taxRate}%):`, totalsX, yPosition);
-                        pdf.text(`$${taxAmount.toFixed(2)}`, totalsX + 35, yPosition);
-                        yPosition += 6;
-                    }
-        
-                    pdf.line(totalsX, yPosition - 2, pageWidth - margin, yPosition - 2);
-                    yPosition += 4;
-        
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Total (USD):', totalsX, yPosition);
-                    pdf.text(`$${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
-        
-                    // Convert PDF to base64
-                    const pdfBase64 = pdf.output('datauristring').split(',')[1];
-                    invoiceData.pdfBase64 = pdfBase64;
-        
-                    // Submit to Google Apps Script
-                    const response = await fetch(GOOGLE_SCRIPT_URL, {
-                        method: 'POST',
-                        body: JSON.stringify(invoiceData)
-                    });
-        
-                    const result = await response.json();
-        
-                    if (result.result === 'success') {
-                        hasSubmittedToAP = true; // Mark as submitted to AP
-                        showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
-                    } else if (result.error === 'duplicate') {
-                        showStatusMessage(result.message, 'error');
-                    } else {
-                        throw new Error(result.message || 'Submission failed');
-                    }
-                    
-                } catch (error) {
-                    console.error('AP submission error:', error);
-                    showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
-                } finally {
-                    const submitBtn = document.getElementById('submit-to-ap-btn');
-                    submitBtn.disabled = false;
-                    submitBtn.textContent = '📧 Submit to AP';
-                }
-            };
             
+                        showStatusMessage('Submitting invoice to AP...', 'info');
+                        const submitBtn = document.getElementById('submit-to-ap-btn');
+                        submitBtn.disabled = true;
+                        submitBtn.textContent = '⏳ Submitting...';
+            
+                        // Prepare invoice data
+                        const invoiceData = {
+                            action: 'submitToAP', // Special flag for AP submission
+                            timestamp: new Date().toISOString(),
+                            costCenter: document.getElementById('cost-center').value,
+                            vendorName: document.getElementById('vendor-name').value,
+                            vendorLlc: document.getElementById('vendor-llc').value || '',
+                            vendorAddress: document.getElementById('vendor-address').value,
+                            vendorCity: document.getElementById('vendor-city').value,
+                            vendorEmail: document.getElementById('vendor-email').value,
+                            clientName: document.getElementById('client-name').value,
+                            hiringManager: document.getElementById('hiring-manager').value,
+                            hiringManagerEmail: document.getElementById('hiring-manager-email').value,
+                            invoiceNumber: document.getElementById('invoice-number').value,
+                            invoiceDate: document.getElementById('invoice-date').value,
+                            payTerms: document.getElementById('pay-terms').value,
+                            poNumber: document.getElementById('po-number').value || '',
+                            serviceStart: document.getElementById('service-start').value,
+                            serviceEnd: document.getElementById('service-end').value,
+                            subtotal: subtotalEl.textContent,
+                            taxRate: taxRateEl.value,
+                            grandTotal: grandTotalEl.textContent,
+                            items: []
+                        };
+            
+                        document.querySelectorAll('.table-row').forEach(row => {
+                            const serviceItem = row.querySelector('.service-item').value;
+                            if (serviceItem) {
+                                invoiceData.items.push({
+                                    serviceItem: serviceItem,
+                                    jobCode: row.querySelector('.job-code').value,
+                                    hours: row.querySelector('.quantity').value,
+                                    rate: row.querySelector('.rate').value,
+                                    amount: row.querySelector('.amount-cell').textContent
+                                });
+                            }
+                        });
+            
+                        // Submit to Google Apps Script
+                        const response = await fetch(GOOGLE_SCRIPT_URL, {
+                            method: 'POST',
+                            body: JSON.stringify(invoiceData)
+                        });
+            
+                        const result = await response.json();
+            
+                        if (result.result === 'success') {
+                            showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
+                        } else {
+                            throw new Error(result.error || 'Submission failed');
+                        }
+                        
+                    } catch (error) {
+                        console.error('AP submission error:', error);
+                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
+                    } finally {
+                        const submitBtn = document.getElementById('submit-to-ap-btn');
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = '📧 Submit to AP';
+                    }
+                };
+
             // Event Listeners
-            addItemBtn.addEventListener('click', () => createItemRow());
-            downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
-            document.getElementById('submit-to-ap-btn').addEventListener('click', submitToAP);
-            document.getElementById('clear-data-btn').addEventListener('click', clearStoredData);
-            taxRateEl.addEventListener('input', calculateTotals);
+                addItemBtn.addEventListener('click', () => createItemRow());
+                downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
+                document.getElementById('submit-to-ap-btn').addEventListener('click', submitToAP);
+                taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
             itemsContainer.addEventListener('click', (e) => {
