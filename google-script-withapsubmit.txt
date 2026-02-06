@@ -5,6 +5,10 @@ function doPost(e) {
     if (!sheet) {
       throw new Error('We ran into an issue while generating your invoice PDF. Please contact finops@gendigital.com for assistance.');
     }
+
+    if (data.action === 'validateJobCodes') {
+      return validateJobCodes(data);
+    }
     
     // Check if this is an AP submission request with PDF
     if (data.action === 'submitToAP') {
@@ -66,6 +70,47 @@ function doPost(e) {
       .setMimeType(ContentService.MimeType.JSON);
       
   } catch(error) {
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        'result': 'error',
+        'error': error.toString()
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+function validateJobCodes(data) {
+  try {
+    const validationSheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName('JobValidationData');
+    if (!validationSheet) {
+      throw new Error('Job validation data not found. Please contact finops@gendigital.com.');
+    }
+    
+    const lastRow = validationSheet.getLastRow();
+    const values = lastRow > 0
+      ? validationSheet.getRange(1, 1, lastRow, 1).getValues().flat()
+      : [];
+      
+    const validCodes = new Set(
+      values
+        .map(value => String(value).trim())
+        .filter(value => value.length > 0)
+    );
+    
+    const inputCodes = Array.isArray(data.jobCodes) ? data.jobCodes : [];
+    const invalidCodes = inputCodes
+      .map(value => String(value).trim())
+      .filter(value => value.length > 0 && !validCodes.has(value));
+    
+    const uniqueInvalidCodes = [...new Set(invalidCodes)];
+    
+    return ContentService
+      .createTextOutput(JSON.stringify({
+        'result': 'success',
+        'invalidJobCodes': uniqueInvalidCodes
+      }))
+      .setMimeType(ContentService.MimeType.JSON);
+  } catch (error) {
     return ContentService
       .createTextOutput(JSON.stringify({
         'result': 'error',

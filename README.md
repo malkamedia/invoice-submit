@@ -1,6 +1,6 @@
 # Vendor Invoice Generation Tool
 
-A professional web-based invoice submission system for Malka Media Group vendors. This portal allows vendors to create, download, and submit invoices directly to the AP (Accounts Payable) team with automatic data logging to Google Sheets.
+A professional web-based invoice submission system for Malka Media Group vendors. This portal allows vendors to create and download invoices with automatic data logging to Google Sheets.
 
 **Live Site:** https://invoice.malkamedia.com
 
@@ -10,7 +10,6 @@ This invoice system streamlines the vendor payment process by:
 - Providing a clean, professional interface for invoice creation
 - Automatically validating all required fields and job codes
 - Generating PDF invoices for download
-- Submitting invoice data and PDFs directly to AP via email
 - Logging all submissions to a Google Sheets database
 - Supporting all Malka Media Group service categories and cost centers
 
@@ -26,7 +25,7 @@ This invoice system streamlines the vendor payment process by:
   - Account Management
 - **Dynamic line items** with duplicate and delete functionality
 - **Automatic calculations** for subtotals, tax, and grand totals
-- **Job code validation** (required 6-digit format)
+- **Job code validation** (required 6-digit format + validation against `JobValidationData` sheet)
 - **Cost center selection** from 7 predefined Malka departments
 
 ### Data Management
@@ -34,12 +33,11 @@ This invoice system streamlines the vendor payment process by:
 - **Automatic timestamping** of submissions
 - **Unique invoice ID generation** for tracking
 - **Silent background submission** to Google Sheets on PDF download
-- **Email delivery** with PDF attachment when submitting to AP
+- **Server-side job code validation** against `JobValidationData` in Google Sheets
 
 ### User Experience
 - **Responsive design** that works on desktop, tablet, and mobile
 - **Professional styling** with Malka Media branding
-- **Helpful tooltips** on action buttons
 - **Clear error messaging** with field highlighting
 - **Auto-populated dates** for convenience
 
@@ -74,9 +72,9 @@ This invoice system streamlines the vendor payment process by:
 
 1. **Create a new Google Sheet** for invoice data logging
 
-2. **Create a sheet tab named `Workflow Testing`**
+2. **Create a sheet tab named `Invoices`**
 
-3. **Set up column headers** (Row 1) in the `Workflow Testing` tab:
+3. **Set up column headers** (Row 1) in the `Invoices` tab:
    - A: Form Submission Timestamp
    - B: Invoice ID
    - C: Invoice Line Item ID
@@ -111,6 +109,9 @@ This invoice system streamlines the vendor payment process by:
    - Set appropriate column widths
    - Format currency columns (T, V, and AA columns)
 
+5. **Create a sheet tab named `JobValidationData`:**
+   - Column A: Valid Job Codes (one per row)
+
 ### Google Apps Script Setup
 
 1. **Open Script Editor:**
@@ -131,6 +132,7 @@ This invoice system streamlines the vendor payment process by:
      cc: data.vendorEmail
    });
 ```
+Note: AP submission is currently commented out in the frontend, so this is inactive unless re-enabled.
 
 4. **Deploy as Web App:**
    - Click Deploy > New deployment
@@ -252,9 +254,8 @@ MailApp.sendEmail({
    - Add tax percentage if applicable
    - Review grand total
 
-8. **Download or submit:**
+8. **Download:**
    - **Download Invoice PDF:** Creates a PDF for your records and silently logs data to Google Sheets
-   - **Submit to AP:** Sends invoice PDF via email to AP team and CC's you
 
 ### For Administrators
 
@@ -263,11 +264,6 @@ MailApp.sendEmail({
 - All submissions appear with timestamp and unique ID
 - Use filters to search/sort invoices
 - Export data for accounting software if needed
-
-**Check email delivery:**
-- Verify emails are being received at configured AP address
-- Check spam folder if emails aren't arriving
-- Ensure Google Apps Script has email permissions
 
 **Troubleshooting:**
 - Check Script Editor for error logs (Executions tab)
@@ -291,7 +287,7 @@ The form enforces these validation rules:
 - At least one line item with service selected
 
 ### Field Constraints
-- **Job Code:** Exactly 6 digits when service is selected
+- **Job Code:** Exactly 6 digits when service is selected and must match `JobValidationData` Column A
 - **Email:** Must match standard email format
 - **Numbers:** Hours/quantity and rate must be positive numbers
 - **Dates:** Must be valid date selections
@@ -342,13 +338,6 @@ The form enforces these validation rules:
 
 ### Submission Failures
 
-**Problem:** "Error submitting to AP" message
-**Solution:**
-- Verify Google Apps Script web app is deployed
-- Check Script URL in `GOOGLE_SCRIPT_URL` constant
-- Review Apps Script execution logs for errors
-- Confirm email permissions are granted
-
 **Problem:** Data not appearing in Google Sheets
 **Solution:**
 - Check if sheet is the active sheet in the Apps Script
@@ -363,6 +352,7 @@ The form enforces these validation rules:
 - Ensure job code is exactly 6 digits
 - No spaces or special characters allowed
 - Delete and re-type if pasting from elsewhere
+- Confirm the code exists in `JobValidationData` Column A
 
 **Problem:** Form says fields are required but they're filled
 **Solution:**
@@ -439,6 +429,6 @@ This system is for internal use by Malka Media Group vendors only.
 
 ---
 
-**Version:** 2.0  
-**Last Updated:** December 2024  
+**Version:** 2.1  
+**Last Updated:** February 6, 2026  
 **Maintained by:** Malka Media Group IT Team

@@ -905,9 +905,11 @@
                 <button type="button" id="download-pdf-btn" class="btn btn-success">
                     📥 Download Invoice PDF
                 </button>
+                <!--
                 <button type="button" id="submit-to-ap-btn" class="btn btn-primary">
                     📧 Submit to AP
                 </button>
+                -->
             </div>
             
             <div id="status-message" class="status-message"></div>
@@ -1537,6 +1539,21 @@
                 createItemRow(data);
             };
 
+            const collectJobCodes = () => {
+                const codes = [];
+                document.querySelectorAll('.table-row').forEach(row => {
+                    const serviceItem = row.querySelector('.service-item').value;
+                    if (!serviceItem) return;
+                    
+                    const jobCode = row.querySelector('.job-code').value.trim();
+                    if (jobCode) {
+                        codes.push(jobCode);
+                    }
+                });
+                
+                return [...new Set(codes)];
+            };
+
             // Silent submission to Google Sheets
             const submitToSpreadsheet = async (invoiceData) => {
                 const response = await fetch(GOOGLE_SCRIPT_URL, {
@@ -1560,6 +1577,28 @@
                 console.log('Data submitted successfully');
             };
 
+            const validateJobCodesAgainstSheet = async (jobCodes) => {
+                if (!jobCodes || jobCodes.length === 0) {
+                    return [];
+                }
+                
+                const response = await fetch(GOOGLE_SCRIPT_URL, {
+                    method: 'POST',
+                    body: JSON.stringify({
+                        action: 'validateJobCodes',
+                        jobCodes: jobCodes
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.result === 'error') {
+                    throw new Error(result.error || 'Job code validation failed');
+                }
+                
+                return result.invalidJobCodes || [];
+            };
+
             // Generate PDF and submit data
             const generatePDFAndSubmit = async () => {
                 try {
@@ -1579,9 +1618,41 @@
                         return;
                     }
 
-                    showStatusMessage('Generating PDF...', 'info');
                     downloadPdfBtn.disabled = true;
+                    downloadPdfBtn.textContent = '⏳ Validating...';
+                    showStatusMessage('Validating job codes...', 'info');
+
+                    const jobCodes = collectJobCodes();
+                    const invalidJobCodes = await validateJobCodesAgainstSheet(jobCodes);
+                    
+                    if (invalidJobCodes.length > 0) {
+                        const invalidSet = new Set(invalidJobCodes);
+                        
+                        document.querySelectorAll('.table-row').forEach(row => {
+                            const jobInput = row.querySelector('.job-code');
+                            const jobCode = jobInput.value.trim();
+                            if (jobCode && invalidSet.has(jobCode)) {
+                                jobInput.classList.add('validation-error');
+                            } else if (jobCode) {
+                                jobInput.classList.remove('validation-error');
+                            }
+                        });
+                        
+                        showStatusMessage(
+                            `Invalid Job Code(s): ${invalidJobCodes.join(', ')}. Please check with your hiring manager to confirm.`,
+                            'error'
+                        );
+                        
+                        const firstInvalid = document.querySelector('.job-code.validation-error');
+                        if (firstInvalid) {
+                            firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstInvalid.focus();
+                        }
+                        return;
+                    }
+
                     downloadPdfBtn.textContent = '⏳ Generating...';
+                    showStatusMessage('Generating PDF...', 'info');
 
                     // Check if jsPDF is loaded
                     if (typeof window.jspdf === 'undefined') {
@@ -1846,6 +1917,8 @@
                     // Check if this is a duplicate invoice error
                     if (error.message && error.message.includes('Duplicate Invoice Found')) {
                         showStatusMessage(error.message, 'error');
+                    } else if (error.message && error.message.includes('Job code validation')) {
+                        showStatusMessage(error.message, 'error');
                     } else {
                         showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
                     }
@@ -1856,93 +1929,96 @@
             };
 
             // Submit to AP via server-side email with PDF
-                const submitToAP = async () => {
-                    try {
-                        const validationErrors = validateForm();
+            // Commented out per request: not live/functional.
+            /*
+            const submitToAP = async () => {
+                try {
+                    const validationErrors = validateForm();
+                    
+                    if (validationErrors.length > 0) {
+                        const errorMessage = 'Please complete the following required fields:\n• ' + validationErrors.join('\n• ');
+                        showStatusMessage(errorMessage, 'error');
                         
-                        if (validationErrors.length > 0) {
-                            const errorMessage = 'Please complete the following required fields:\n• ' + validationErrors.join('\n• ');
-                            showStatusMessage(errorMessage, 'error');
-                            
-                            const firstError = document.querySelector('.validation-error');
-                            if (firstError) {
-                                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                                firstError.focus();
-                            }
-                            return;
+                        const firstError = document.querySelector('.validation-error');
+                        if (firstError) {
+                            firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            firstError.focus();
                         }
-            
-                        showStatusMessage('Submitting invoice to AP...', 'info');
-                        const submitBtn = document.getElementById('submit-to-ap-btn');
-                        submitBtn.disabled = true;
-                        submitBtn.textContent = '⏳ Submitting...';
-            
-                        // Prepare invoice data
-                        const invoiceData = {
-                            action: 'submitToAP', // Special flag for AP submission
-                            timestamp: new Date().toISOString(),
-                            costCenter: document.getElementById('cost-center').value,
-                            vendorName: document.getElementById('vendor-name').value,
-                            vendorLlc: document.getElementById('vendor-llc').value || '',
-                            vendorAddress: document.getElementById('vendor-address').value,
-                            vendorCity: document.getElementById('vendor-city').value,
-                            vendorEmail: document.getElementById('vendor-email').value,
-                            clientName: document.getElementById('client-name').value,
-                            hiringManager: document.getElementById('hiring-manager').value,
-                            hiringManagerEmail: document.getElementById('hiring-manager-email').value,
-                            invoiceNumber: document.getElementById('invoice-number').value,
-                            invoiceDate: document.getElementById('invoice-date').value,
-                            payTerms: document.getElementById('pay-terms').value,
-                            poNumber: document.getElementById('po-number').value || '',
-                            serviceStart: document.getElementById('service-start').value,
-                            serviceEnd: document.getElementById('service-end').value,
-                            subtotal: subtotalEl.textContent,
-                            taxRate: taxRateEl.value,
-                            grandTotal: grandTotalEl.textContent,
-                            items: []
-                        };
-            
-                        document.querySelectorAll('.table-row').forEach(row => {
-                            const serviceItem = row.querySelector('.service-item').value;
-                            if (serviceItem) {
-                                invoiceData.items.push({
-                                    serviceItem: serviceItem,
-                                    jobCode: row.querySelector('.job-code').value,
-                                    hours: row.querySelector('.quantity').value,
-                                    rate: row.querySelector('.rate').value,
-                                    amount: row.querySelector('.amount-cell').textContent
-                                });
-                            }
-                        });
-            
-                        // Submit to Google Apps Script
-                        const response = await fetch(GOOGLE_SCRIPT_URL, {
-                            method: 'POST',
-                            body: JSON.stringify(invoiceData)
-                        });
-            
-                        const result = await response.json();
-            
-                        if (result.result === 'success') {
-                            showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
-                        } else {
-                            throw new Error(result.error || 'Submission failed');
-                        }
-                        
-                    } catch (error) {
-                        console.error('AP submission error:', error);
-                        showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
-                    } finally {
-                        const submitBtn = document.getElementById('submit-to-ap-btn');
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = '📧 Submit to AP';
+                        return;
                     }
-                };
+        
+                    showStatusMessage('Submitting invoice to AP...', 'info');
+                    const submitBtn = document.getElementById('submit-to-ap-btn');
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = '⏳ Submitting...';
+        
+                    // Prepare invoice data
+                    const invoiceData = {
+                        action: 'submitToAP', // Special flag for AP submission
+                        timestamp: new Date().toISOString(),
+                        costCenter: document.getElementById('cost-center').value,
+                        vendorName: document.getElementById('vendor-name').value,
+                        vendorLlc: document.getElementById('vendor-llc').value || '',
+                        vendorAddress: document.getElementById('vendor-address').value,
+                        vendorCity: document.getElementById('vendor-city').value,
+                        vendorEmail: document.getElementById('vendor-email').value,
+                        clientName: document.getElementById('client-name').value,
+                        hiringManager: document.getElementById('hiring-manager').value,
+                        hiringManagerEmail: document.getElementById('hiring-manager-email').value,
+                        invoiceNumber: document.getElementById('invoice-number').value,
+                        invoiceDate: document.getElementById('invoice-date').value,
+                        payTerms: document.getElementById('pay-terms').value,
+                        poNumber: document.getElementById('po-number').value || '',
+                        serviceStart: document.getElementById('service-start').value,
+                        serviceEnd: document.getElementById('service-end').value,
+                        subtotal: subtotalEl.textContent,
+                        taxRate: taxRateEl.value,
+                        grandTotal: grandTotalEl.textContent,
+                        items: []
+                    };
+        
+                    document.querySelectorAll('.table-row').forEach(row => {
+                        const serviceItem = row.querySelector('.service-item').value;
+                        if (serviceItem) {
+                            invoiceData.items.push({
+                                serviceItem: serviceItem,
+                                jobCode: row.querySelector('.job-code').value,
+                                hours: row.querySelector('.quantity').value,
+                                rate: row.querySelector('.rate').value,
+                                amount: row.querySelector('.amount-cell').textContent
+                            });
+                        }
+                    });
+        
+                    // Submit to Google Apps Script
+                    const response = await fetch(GOOGLE_SCRIPT_URL, {
+                        method: 'POST',
+                        body: JSON.stringify(invoiceData)
+                    });
+        
+                    const result = await response.json();
+        
+                    if (result.result === 'success') {
+                        showStatusMessage('Invoice successfully submitted to AP! A copy has been sent to your email.', 'success');
+                    } else {
+                        throw new Error(result.error || 'Submission failed');
+                    }
+                    
+                } catch (error) {
+                    console.error('AP submission error:', error);
+                    showStatusMessage(`Error submitting to AP: ${error.message}`, 'error');
+                } finally {
+                    const submitBtn = document.getElementById('submit-to-ap-btn');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = '📧 Submit to AP';
+                }
+            };
+            */
 
             // Event Listeners
                 addItemBtn.addEventListener('click', () => createItemRow());
                 downloadPdfBtn.addEventListener('click', generatePDFAndSubmit);
-                document.getElementById('submit-to-ap-btn').addEventListener('click', submitToAP);
+                // document.getElementById('submit-to-ap-btn').addEventListener('click', submitToAP);
                 taxRateEl.addEventListener('input', calculateTotals);
             
             // Handle remove and duplicate buttons
