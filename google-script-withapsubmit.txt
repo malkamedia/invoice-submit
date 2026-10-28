@@ -123,20 +123,18 @@ function handleAPSubmission(data, sheet) {
       });
     }
     
-    // Get PDF from base64 data sent from client
-    if (!data.pdfBase64) {
-      throw new Error('PDF data missing');
+    // CSV text is built in the browser and sent as a string
+    if (!data.csvContent) {
+      throw new Error('CSV data missing');
     }
     
-    // Decode base64 PDF
-    const pdfBytes = Utilities.base64Decode(data.pdfBase64);
-    const pdfBlob = Utilities.newBlob(pdfBytes, 'application/pdf');
+    const csvBlob = Utilities.newBlob(data.csvContent, 'text/csv');
     
     // Send email
     const subject = `${data.vendorName} Invoice Submission: ${data.invoiceNumber}`;
     const emailBody = `Hello AP Team,
 
-Please find attached invoice ${data.invoiceNumber} from ${data.vendorName}.
+Please find attached invoice ${data.invoiceNumber} (CSV) from ${data.vendorName}.
 
 Invoice Details:
 - Invoice Number: ${data.invoiceNumber}
@@ -149,13 +147,13 @@ Invoice Details:
 Thank you,
 ${data.vendorName}`;
     
-    const fileName = `${data.vendorName.replace(/[^a-zA-Z0-9]/g, '_')}_${data.invoiceNumber}_${data.invoiceDate}.pdf`;
+    const fileName = `${data.vendorName.replace(/[^a-zA-Z0-9]/g, '_')}_${data.invoiceNumber}_${data.invoiceDate}.csv`;
     
     MailApp.sendEmail({
       to: 'mike@malkamedia.com',
       subject: subject,
       body: emailBody,
-      attachments: [pdfBlob.setName(fileName)],
+      attachments: [csvBlob.setName(fileName)],
       cc: data.vendorEmail
     });
     

@@ -22,9 +22,6 @@
     <meta name="twitter:description" content="Professional invoice submission form for Malka Media Group LLC vendors">
     <meta name="twitter:image" content="https://cdn.prod.website-files.com/63ed602b8bb6f01fe4678cd7/6568d4822f24643cd4dee8d4_m-box-shadows.png">
         
-    <!-- External Libraries for PDF Generation -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
@@ -903,7 +900,7 @@
             
             <div class="button-group">
                 <button type="button" id="download-pdf-btn" class="btn btn-success">
-                    📥 Download Invoice PDF
+                    📥 Download Invoice CSV
                 </button>
                 <button type="button" id="submit-to-ap-btn" class="btn btn-primary">
                     📧 Submit to AP
@@ -1560,7 +1557,78 @@
                 console.log('Data submitted successfully');
             };
 
-            // Generate PDF and submit data
+            // Column layout the AP import expects: one row per line item
+            const AP_CSV_HEADERS = ['Batch Name', 'Source', 'Operating Unit', 'Invoice Type', 'Vendor Code', 'Vendor Site Code', 'Vendor Name', 'Invoice Total', 'Invoice', 'Invoice Date', 'Invoice Description', 'Invoice Currency', 'GL Code', 'Project Number', 'Task', 'Expenditure Org', 'Expenditure Type', 'Expenditure Item Date', 'Line Description', 'PO', 'PO Line', 'Qty', 'Unit Price', 'Requestor Name First Name Last Name', 'Default Category Name', 'Line Type', 'Tax Code', 'Amount Includes Tax', 'Trading Partner Intercompany', 'Invoice Header DFF1', 'Invoice Header DFF2', 'Invoice Line DFF1', 'Invoice Line DFF2', 'Invoice Dist DFF1', 'Invoice Dist DFF2', 'Invoice Received Date', 'Total Tax Amount'];
+
+            // Values the form does not collect yet. Confirm these with AP before going live.
+            const AP_DEFAULTS = {
+                operatingUnit: 'USA OU',
+                vendorCode: '41264',
+                vendorSiteCode: 'MALKA-NJ-USD',
+                currency: 'USD',
+                glCode: '1066-100-10600-5038-5118941-0000-0000-00000',
+                poLine: '1'
+            };
+
+            const MONTH_NAMES = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+
+            // YYYY-MM-DD -> MM/DD/YYYY
+            const toUsDate = (isoDate) => {
+                const [year, month, day] = (isoDate || '').split('-');
+                return year && month && day ? `${month}/${day}/${year}` : '';
+            };
+
+            const formatMoney = (value) => `$${value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
+            const csvCell = (value) => {
+                const text = String(value ?? '');
+                return /[",\r\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+            };
+
+            const buildAPCsv = (invoiceData) => {
+                const subtotal = invoiceData.items.reduce((sum, item) => sum + (parseFloat(item.hours) || 0) * (parseFloat(item.rate) || 0), 0);
+                const taxAmount = subtotal * ((parseFloat(invoiceData.taxRate) || 0) / 100);
+                const grandTotal = subtotal + taxAmount;
+
+                const serviceMonth = invoiceData.serviceStart ? MONTH_NAMES[parseInt(invoiceData.serviceStart.split('-')[1], 10) - 1] : '';
+                const invoiceDescription = serviceMonth ? `Invoice for ${serviceMonth}` : '';
+
+                const now = new Date();
+                const receivedDate = `${String(now.getMonth() + 1).padStart(2, '0')}/${String(now.getDate()).padStart(2, '0')}/${now.getFullYear()}`;
+
+                const rows = invoiceData.items.map(item => {
+                    const amount = (parseFloat(item.hours) || 0) * (parseFloat(item.rate) || 0);
+                    return [
+                        '', '', AP_DEFAULTS.operatingUnit, '',
+                        AP_DEFAULTS.vendorCode, AP_DEFAULTS.vendorSiteCode, invoiceData.vendorName,
+                        formatMoney(grandTotal), `Invoice# ${invoiceData.invoiceNumber}`, toUsDate(invoiceData.invoiceDate),
+                        invoiceDescription, AP_DEFAULTS.currency, AP_DEFAULTS.glCode, item.jobCode,
+                        '', '', '', '',
+                        `${item.serviceItem} - ${item.hours} Hours`, invoiceData.poNumber, AP_DEFAULTS.poLine,
+                        '1', formatMoney(amount),
+                        ...Array(12).fill(''),
+                        receivedDate, taxAmount.toFixed(2)
+                    ];
+                });
+
+                return [AP_CSV_HEADERS, ...rows]
+                    .map(cols => cols.map(csvCell).join(','))
+                    .join('\r\n');
+            };
+
+            const downloadCsv = (csvText, filename) => {
+                const blob = new Blob([csvText], { type: 'text/csv;charset=utf-8' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = filename;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+            };
+
+            // Generate CSV and submit data
             const generatePDFAndSubmit = async () => {
                 try {
                     // Validate form
@@ -1579,14 +1647,9 @@
                         return;
                     }
 
-                    showStatusMessage('Generating PDF...', 'info');
+                    showStatusMessage('Generating CSV...', 'info');
                     downloadPdfBtn.disabled = true;
                     downloadPdfBtn.textContent = '⏳ Generating...';
-
-                    // Check if jsPDF is loaded
-                    if (typeof window.jspdf === 'undefined') {
-                        throw new Error('PDF library not loaded. Please refresh the page and try again.');
-                    }
 
                     // Prepare invoice data for submission
                     const invoiceData = {
@@ -1610,7 +1673,7 @@
                         taxRate: taxRateEl.value,
                         grandTotal: grandTotalEl.textContent,
                         items: [],
-                        action: 'downloadPDF',
+                        action: 'downloadCSV',
                         isCurrentSession: currentSessionInvoice && 
                                          currentSessionInvoice.vendorEmail === document.getElementById('vendor-email').value &&
                                          currentSessionInvoice.invoiceNumber === document.getElementById('invoice-number').value
@@ -1642,220 +1705,32 @@
                     // Save vendor info to local storage for next time
                     saveVendorInfo();
 
-                    const { jsPDF } = window.jspdf;
-                    const pdf = new jsPDF('p', 'mm', 'a4');
-                    
-                    // Set up dimensions
-                    const pageWidth = 210;
-                    const pageHeight = 297;
-                    const margin = 20;
-                    const contentWidth = pageWidth - (margin * 2);
-                    let yPosition = margin;
-                    
-                    // Helper function for text with word wrapping
-                    const addText = (text, x, y, fontSize = 10, style = 'normal') => {
-                        pdf.setFontSize(fontSize);
-                        pdf.setFont('helvetica', style);
-                        const lines = pdf.splitTextToSize(text, contentWidth - x + margin);
-                        pdf.text(lines, x, y);
-                        return y + (lines.length * fontSize * 0.4);
-                    };
-                    
-                    // Helper function to check page breaks
-                    const checkPageBreak = (neededHeight) => {
-                        if (yPosition + neededHeight > pageHeight - margin) {
-                            pdf.addPage();
-                            yPosition = margin;
-                        }
-                    };
-
-                    // Title
-                    pdf.setFontSize(24);
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('INVOICE', margin, yPosition);
-                    yPosition += 10;
-                    
-                    pdf.setFontSize(10);
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text('Professional Services Invoice', margin, yPosition);
-                    yPosition += 15;
-
-                    // Vendor and Client Info
-                    const leftCol = margin;
-                    const rightCol = pageWidth / 2 + 10;
-                    
-                    // Vendor Info
-                    let leftY = yPosition;
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Vendor Information:', leftCol, leftY);
-                    leftY += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    const vendorName = invoiceData.vendorName || 'N/A';
-                    const vendorAddress = invoiceData.vendorAddress || 'N/A';
-                    const vendorLlc = invoiceData.vendorLlc || '';
-                    const vendorCity = invoiceData.vendorCity || 'N/A';
-                    const vendorEmail = invoiceData.vendorEmail || 'N/A';
-                    
-                    leftY = addText(vendorName, leftCol, leftY);
-                    if (vendorLlc) leftY = addText(`${vendorLlc}`, leftCol, leftY);
-                    leftY = addText(vendorAddress, leftCol, leftY);
-                    leftY = addText(vendorCity, leftCol, leftY);
-                    leftY = addText(vendorEmail, leftCol, leftY);
-
-                    // Invoice Details
-                    let rightY = yPosition;
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Invoice Details:', rightCol, rightY);
-                    rightY += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    rightY = addText(`Invoice #: ${invoiceData.invoiceNumber || 'N/A'}`, rightCol, rightY);
-                    rightY = addText(`Date: ${invoiceData.invoiceDate || 'N/A'}`, rightCol, rightY);
-                    rightY = addText(`Terms: ${invoiceData.payTerms || 'N/A'}`, rightCol, rightY);
-                    if (invoiceData.poNumber) rightY = addText(`PO#: ${invoiceData.poNumber}`, rightCol, rightY);
-
-                    yPosition = Math.max(leftY, rightY) + 10;
-
-                    // Bill To and Cost Center
-                    checkPageBreak(30);
-                    
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Bill To:', leftCol, yPosition);
-                    pdf.text('Cost Center:', rightCol, yPosition);
-                    yPosition += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    leftY = yPosition;
-                    leftY = addText(invoiceData.clientName || 'N/A', leftCol, leftY);
-                    leftY = addText(invoiceData.hiringManager || 'N/A', leftCol, leftY);
-                    leftY = addText(invoiceData.hiringManagerEmail || 'N/A', leftCol, leftY);
-                    
-                    rightY = yPosition;
-                    const costCenterText = document.getElementById('cost-center').selectedOptions[0]?.text || invoiceData.costCenter;
-                    rightY = addText(costCenterText, rightCol, rightY);
-                    
-                    yPosition = Math.max(leftY, rightY) + 10;
-
-                    // Service Period
-                    checkPageBreak(20);
-                    
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Service Period:', margin, yPosition);
-                    yPosition += 6;
-                    pdf.setFont('helvetica', 'normal');
-                    
-                    yPosition = addText(`${invoiceData.serviceStart || 'N/A'} to ${invoiceData.serviceEnd || 'N/A'}`, margin, yPosition);
-                    yPosition += 10;
-
-                    // Invoice Items Table
-                    checkPageBreak(40);
-                    
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Invoice Items:', margin, yPosition);
-                    yPosition += 8;
-
-                    // Table headers
-                    const colWidths = [70, 25, 20, 20, 25];
-                    const colPositions = [margin];
-                    for (let i = 1; i < colWidths.length; i++) {
-                        colPositions[i] = colPositions[i-1] + colWidths[i-1];
-                    }
-
-                    // Draw table header
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.setFontSize(9);
-                    pdf.text('Service/Item', colPositions[0], yPosition);
-                    pdf.text('Job Code', colPositions[1], yPosition);
-                    pdf.text('Hours', colPositions[2], yPosition);
-                    pdf.text('Rate', colPositions[3], yPosition);
-                    pdf.text('Amount', colPositions[4], yPosition);
-                    yPosition += 6;
-
-                    // Draw header line
-                    pdf.line(margin, yPosition - 2, pageWidth - margin, yPosition - 2);
-                    yPosition += 2;
-
-                    // Table rows
-                    pdf.setFont('helvetica', 'normal');
-                    let subtotal = 0;
-                    
-                    invoiceData.items.forEach(item => {
-                        checkPageBreak(15);
-                        
-                        const amount = parseFloat(item.hours) * parseFloat(item.rate);
-                        subtotal += amount;
-
-                        // Truncate service name if too long
-                        const serviceName = item.serviceItem.length > 40 ? 
-                            item.serviceItem.substring(0, 40) + '...' : item.serviceItem;
-                        
-                        pdf.text(serviceName, colPositions[0], yPosition);
-                        pdf.text(item.jobCode || '', colPositions[1], yPosition);
-                        pdf.text(item.hours, colPositions[2], yPosition);
-                        pdf.text(`$${parseFloat(item.rate).toFixed(2)}`, colPositions[3], yPosition);
-                        pdf.text(`$${amount.toFixed(2)}`, colPositions[4], yPosition);
-                        yPosition += 6;
-                    });
-
-                    yPosition += 10;
-
-                    // Totals
-                    checkPageBreak(25);
-                    
-                    const taxRate = parseFloat(invoiceData.taxRate) || 0;
-                    const taxAmount = subtotal * (taxRate / 100);
-                    const grandTotal = subtotal + taxAmount;
-
-                    const totalsX = pageWidth - margin - 60;
-                    pdf.setFont('helvetica', 'normal');
-                    pdf.text('Subtotal:', totalsX, yPosition);
-                    pdf.text(`$${subtotal.toFixed(2)}`, totalsX + 35, yPosition);
-                    yPosition += 6;
-
-                    if (taxRate > 0) {
-                        pdf.text(`Tax (${taxRate}%):`, totalsX, yPosition);
-                        pdf.text(`$${taxAmount.toFixed(2)}`, totalsX + 35, yPosition);
-                        yPosition += 6;
-                    }
-
-                    pdf.line(totalsX, yPosition - 2, pageWidth - margin, yPosition - 2);
-                    yPosition += 4;
-
-                    pdf.setFont('helvetica', 'bold');
-                    pdf.text('Total (USD):', totalsX, yPosition);
-                    pdf.text(`$${grandTotal.toFixed(2)}`, totalsX + 35, yPosition);
-
-                    // Generate filename
-                    const vendorNameClean = vendorName
+                    const csvText = buildAPCsv(invoiceData);
+                    const vendorNameClean = (invoiceData.vendorName || '')
                         .replace(/[^a-zA-Z0-9\s]/g, '')
                         .replace(/\s+/g, '_')
                         .substring(0, 20) || 'Invoice';
                     const invoiceNumberClean = invoiceData.invoiceNumber.replace(/[^a-zA-Z0-9]/g, '_') || 'INV-001';
                     const invoiceDateClean = invoiceData.invoiceDate || new Date().toISOString().split('T')[0];
-                    
-                    const filename = `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.pdf`;
-
-                    // Save the PDF
-                    pdf.save(filename);
-                    showStatusMessage('Invoice PDF downloaded successfully!', 'success');
+                    downloadCsv(csvText, `${vendorNameClean}_${invoiceNumberClean}_${invoiceDateClean}.csv`);
+                    showStatusMessage('Invoice CSV downloaded successfully!', 'success');
                     
                 } catch (error) {
-                    console.error('PDF generation error:', error);
+                    console.error('CSV generation error:', error);
                     
                     // Check if this is a duplicate invoice error
                     if (error.message && error.message.includes('Duplicate Invoice Found')) {
                         showStatusMessage(error.message, 'error');
                     } else {
-                        showStatusMessage(`Error generating PDF: ${error.message}`, 'error');
+                        showStatusMessage(`Error generating CSV: ${error.message}`, 'error');
                     }
                 } finally {
                     downloadPdfBtn.disabled = false;
-                    downloadPdfBtn.textContent = '📥 Download Invoice PDF';
+                    downloadPdfBtn.textContent = '📥 Download Invoice CSV';
                 }
             };
 
-            // Submit to AP via server-side email with PDF
+            // Submit to AP via server-side email with CSV
                 const submitToAP = async () => {
                     try {
                         const validationErrors = validateForm();
@@ -1915,6 +1790,9 @@
                             }
                         });
             
+                        // CSV attached to the AP email
+                        invoiceData.csvContent = buildAPCsv(invoiceData);
+
                         // Submit to Google Apps Script
                         const response = await fetch(GOOGLE_SCRIPT_URL, {
                             method: 'POST',
